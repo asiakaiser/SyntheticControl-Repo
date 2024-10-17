@@ -1,0 +1,12 @@
+---
+title: "Synthetic Control Analysis"
+author: "Asia Kaiser"
+date: "2024-10-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
