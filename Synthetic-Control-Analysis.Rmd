@@ -17,6 +17,7 @@ library(nlme)
 library(AICcmodavg)
 library(purrr)
 library(ggpubr)
+library(microsynth)
 ```
 
 # Load in Data
@@ -82,6 +83,22 @@ gbifcity_out <- city.data %>%
   # Generate the synthetic control
   generate_control()
 ```
+
+
+Trying analysis with Microsynth
+
+*adjust the following code for my data*
+```{r}
+sea1 <- microsynth(seattledmi, 
+                   idvar="ID", timevar="time", intvar="Intervention", 
+                   start.pre=1, end.pre=12, end.post=16, 
+                   match.out=match.out, match.covar=cov.var, 
+                   result.var=match.out, omnibus.var=match.out,
+                   test="lower",
+                   n.cores = min(parallel::detectCores(), 2))
+sea1
+```
+
 
 ## Visualizing the data
 
