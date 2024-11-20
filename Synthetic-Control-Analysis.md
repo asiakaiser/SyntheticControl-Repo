@@ -1,30 +1,41 @@
----
-title: "Synthetic Control Analysis"
-author: "Asia Kaiser"
-date: "2024-10-17"
-output: github_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+Synthetic Control Analysis
+================
+Asia Kaiser
+2024-10-17
 
 # Load Packages
-```{r}
+
+``` r
 library(tidyverse)
+```
+
+    ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+    ## ✔ dplyr     1.1.4     ✔ readr     2.1.5
+    ## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+    ## ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
+    ## ✔ lubridate 1.9.3     ✔ tidyr     1.3.1
+    ## ✔ purrr     1.0.2     
+    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+    ## ✖ dplyr::filter() masks stats::filter()
+    ## ✖ dplyr::lag()    masks stats::lag()
+    ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+
+``` r
 library(tidysynth)
 library(purrr)
 library(ggpubr)
 ```
 
 # Load in Data
-```{r}
+
+``` r
 rm(list = ls())
 city.data <- read.csv("data/cities.scm.input.csv")
 ```
 
-DELETE THIS CHUNK AFTER RERUNNING 'GBIF DATA EXTRACTION SCRIPT'
-```{r}
+DELETE THIS CHUNK AFTER RERUNNING ‘GBIF DATA EXTRACTION SCRIPT’
+
+``` r
 #Subset for cities with closer number of observations during treatment year
 cities.pool <- city.data %>%
   filter(year == 2021) %>%
@@ -43,11 +54,12 @@ city.data <- city.data %>%
 # Synthetic Control Analysis: Abundance
 
 ## Creating the Synthetic Control
-* Creating the control objects
-* Selecting the predictors
-* Generating weights
 
-```{r}
+- Creating the control objects
+- Selecting the predictors
+- Generating weights
+
+``` r
 # Create synthetic control object
 gbifcity_out <- city.data %>%
   # Initial synthetic control object
