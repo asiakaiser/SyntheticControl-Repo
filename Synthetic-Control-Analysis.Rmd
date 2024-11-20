@@ -1,0 +1,82 @@
+---
+title: "Synthetic Control Analysis"
+author: "Asia Kaiser"
+date: "2024-10-17"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Packages
+```{r}
+library(tidyverse)
+library(tidysynth)
+library(purrr)
+library(ggpubr)
+```
+
+# Load in Data
+```{r}
+rm(list = ls())
+city.data <- read.csv("data/cities.scm.input.csv")
+```
+
+DELETE THIS CHUNK AFTER RERUNNING 'GBIF DATA EXTRACTION SCRIPT'
+```{r}
+#Subset for cities with closer number of observations during treatment year
+cities.pool <- city.data %>%
+  filter(year == 2021) %>%
+  filter(n.obs45km > 75 & n.obs45km < 500)
+
+#Extract the city column
+cities.pool <-cities.pool$City
+
+#Keeping subset of cities in final dataframe
+#Removing Boston, Atlanta and Baltimore for experiencing this treatment. Removing Houston for abnormal abundance spike in 2016.
+city.data <- city.data %>%
+  filter(City != "Boston"& City != "Atlanta" & City != "Baltimore" & City != "Houston")%>%
+  filter(City %in% cities.pool)
+```
+
+# Synthetic Control Analysis: Abundance
+
+## Creating the Synthetic Control
+* Creating the control objects
+* Selecting the predictors
+* Generating weights
+
+```{r}
+# Create synthetic control object
+gbifcity_out <- city.data %>%
+  # Initial synthetic control object
+  synthetic_control(outcome = n.obs45km, # outcome
+                    unit = City, # unit index in the panel data
+                    time = year, # time index in the panel data
+                    i_unit = "Philadelphia", # unit where the intervention occurred
+                    i_time = 2021, # time period when the intervention occurred
+                    generate_placebos = TRUE # generate placebo synthetic controls (for inference)
+  ) %>%
+  
+  #Generate aggregate predictors to fit weights to each unit
+  generate_predictor(time_window = 2015:2023,
+                     Temperature = mean(Temp,rm.na= TRUE),
+                     Precipitation = mean(Prec, rm.na= TRUE),
+                     Population = mean(Population, rm.na= TRUE),
+                     ) %>%
+  
+  generate_predictor(time_window = 2021,
+                     "Tree canopy cover" = tcc45km,                     ,
+                     "Impervious surface" = imperv45km,
+                     "Area (km2)" = area_km2
+                     ) %>%
+
+  # Generate the fitted weights for the synthetic control
+  generate_weights(optimization_window = 2015:2021, # time to use in the optimization task
+                   margin_ipop = .02,sigf_ipop = 7,bound_ipop = 6 # optimizer options
+  ) %>%
+  
+  # Generate the synthetic control
+  generate_control()
+```
