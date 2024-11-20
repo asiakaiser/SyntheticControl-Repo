@@ -226,7 +226,9 @@ did.trendplot <- ggplot(city.data.did, aes(x = year, y = n.obs45km, color = City
 did.trendplot
 ```
 
-## Interrupted Time Series Regression
+## Interrupted Time Series (ITS) Regression
+
+Explanation of ITS modelling: 
 https://rpubs.com/chrissyhroberts/1006858 
 ```{r}
 #Creating the relevant dummy variables in dataframe
@@ -236,16 +238,51 @@ city.data.its <- city.data %>%
   mutate(Time_since= if_else(year < 2021, 0, (year-2020)))
 city.data.its
 
-#Running the interrupted time series regression
-its.model <- gls(n.obs45km ~ year + Treated + Time_since, data = city.data.its, method = "ML")
+#Running the its regression
+its.model <- gls(n.obs45km ~ year + Treated + Time_since, data = city.data.its, correlation= corARMA(p=1, q=1, form = ~ year), method = "ML")
 summary(its.model)
 
+#confidence intervals for the its regression
 confint(its.model)
 ```
-### ITS Plot
-```{r}
 
+### ITS Plot
+
+```{r}
+#Creating prediction intervals
+city.data.its <-city.data.its %>% mutate(
+  its.predictions = predictSE.gls (its.model,city.data.its, se.fit=T)$fit,
+  its.se = predictSE.gls (its.model,city.data.its, se.fit=T)$se
+  )
+
+#Creating model for counterfactual
+city.data.its.2 <-filter(city.data.its, year < 2021)
+its.counter = gls(n.obs45km ~ year, data = city.data.its.2, correlation= corARMA(p=1, q=1, form = ~ year),method="ML")
+
+#Adding prediction intervals for counterfactual back to dataframe
+city.data.its <-city.data.its %>% mutate(
+  counter.predictions = predictSE.gls (its.counter, newdata = city.data.its, se.fit=T)$fit,
+  counter.se = predictSE.gls (its.counter, city.data.its, se.fit=T)$se
+)
 ```
+
+Plot
+```{r}
+its.plot <- ggplot(city.data.its,
+         aes(year,n.obs45km))+
+  geom_ribbon(aes(ymin = counter.predictions - (1.96*counter.se), ymax = counter.predictions + (1.96*counter.se)), fill = '#D55E00', alpha = 0.5)+
+  geom_line(aes(year,counter.predictions),color="red",lty=2)+
+  geom_ribbon(aes(ymin = its.predictions - (1.96*its.se), ymax = its.predictions + (1.96*its.se)), fill = '#56B4E9', alpha = 0.5)+
+  geom_line(aes(year,its.predictions),color="black",lty=1)+
+  geom_point(alpha=0.3)+
+      labs(title = "Interrupted time series",
+       x = "Year",
+       y = "Bee observations")+
+    theme_minimal()+
+    Asia_Theme
+its.plot
+```
+
 
 # Save Figures
 ```{r}
@@ -258,6 +295,7 @@ ggsave("figures/Weight plot.png", plot = weightplot)
 ggsave("figures/Placebos plot.png", plot = placebos)
 ggsave("figures/MPSE ratio plot.png", plot = mpseratio)
 ggsave("figures/Abundance estimates trend plot.png", plot = did.trendplot)
+ggsave("figures/ITS_plot.png", plot = its.plot)
 ggsave("figures/Method comparison plot.png", plot = trends.figure, height = 6, width = 12)
 ```
 
