@@ -9,4 +9,5 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+**Attempting synthetic control analysis with different package**
 
