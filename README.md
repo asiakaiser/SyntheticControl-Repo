@@ -10,9 +10,9 @@ Other datasets used to collect landscape level predictors and biodiversity outco
 
 **Land Rasters**
 
-  [NLCD 2021 Impervious surface raster](https://drive.google.com/drive/folders/1JqkHvIKIHqytWiRcy276Vo6rnyLoQLFj?usp=sharing)
+  - [NLCD 2021 Impervious surface raster](https://drive.google.com/drive/folders/1JqkHvIKIHqytWiRcy276Vo6rnyLoQLFj?usp=sharing)
   
-  [NLCD 2019 Tree canopy cover raster](https://drive.google.com/drive/folders/1afXTmMfXWmoEw9oO_hpvm6U3TUeyExSK?usp=sharing)
+  - [NLCD 2019 Tree canopy cover raster](https://drive.google.com/drive/folders/1afXTmMfXWmoEw9oO_hpvm6U3TUeyExSK?usp=sharing)
   
 **[GBIF data](https://doi.org/10.15468/dl.jvuxa3)**
   
