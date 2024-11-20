@@ -180,6 +180,7 @@ did.model <- lm(n.obs45km ~ Treated*Time, data = city.data.did)
 summary(did.model)
 confint(did.model)
 
+
 prediction_intervals <- predict(
   did.model, 
   newdata = city.data.did, 
@@ -258,9 +259,9 @@ Plot
 its.plot <- ggplot(city.data.its,
          aes(year,n.obs45km))+
   geom_ribbon(aes(ymin = counter.predictions - (1.96*counter.se), ymax = counter.predictions + (1.96*counter.se)), fill = '#D55E00', alpha = 0.2, linetype = 2)+
-  geom_line(aes(year,counter.predictions),color='#D55E00',lty=1)+
-  geom_ribbon(aes(ymin = its.predictions - (1.96*its.se), ymax = its.predictions + (1.96*its.se)), fill = '#56B4E9', alpha = 0.2, linetype = 2)+
-  geom_line(aes(year,its.predictions),color='#56B4E9',lty=2)+
+  geom_line(aes(year,counter.predictions),color='#D55E00', lty = 3)+
+  geom_ribbon(aes(ymin = its.predictions - (1.96*its.se), ymax = its.predictions + (1.96*its.se)), fill = '#56B4E9', alpha = 0.2, linetype = 1)+
+  geom_line(color='#56B4E9', lty = 1)+
     geom_vline(xintercept = 2021, linetype="dashed")+
   geom_point()+
       labs(title = "Interrupted time series",
@@ -270,7 +271,6 @@ its.plot <- ggplot(city.data.its,
     Asia_Theme
 its.plot
 ```
-
 
 # Save Figures
 ```{r}
