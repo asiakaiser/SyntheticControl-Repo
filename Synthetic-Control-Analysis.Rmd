@@ -191,28 +191,6 @@ city.data.did <- cbind(city.data.did, prediction_intervals)
 ```
 
 ### Difference in Difference Plot
-* Creating a data frame with observation values from all donor cities equally weighted in average. 
-```{r}
-#Observed outcomes
-philly.data <- city.data %>%
-  filter(City == "Philadelphia") %>%
-  pull(n.obs45km)
-
-#Synthetic outcomes
-
-Synthetic <- gbifcity_out %>% grab_synthetic_control()
-
-#Dataframe with observed, simple average, and synthetic control
-city.data.avg <- city.data %>%
-  filter(City != "Philadelphia") %>%
-  group_by(year) %>%
-  summarise(Simple_Average = mean(n.obs45km))%>%
-  mutate(Observed = philly.data)%>%
-  mutate(Synthetic = Synthetic$synth_y)%>%
-  pivot_longer(cols = c(Simple_Average, Observed, Synthetic), 
-               names_to = "Unit", 
-               values_to = "Observations")
-```
 
 *Difference in Difference plot with most similar city*
 ```{r}
@@ -220,7 +198,7 @@ palette.colors(palette = "Okabe-Ito")
 
 did.trendplot <- ggplot(city.data.did, aes(x = year, y = n.obs45km, color = City)) +
     geom_line(linewidth = 1, aes(linetype = City))+
-    geom_ribbon(aes(ymin = lwr, ymax = upr, fill = City), alpha = 0.5)+
+    geom_ribbon(aes(ymin = lwr, ymax = upr, fill = City), alpha = 0.2, linetype = 0)+
   geom_point()+
   scale_linetype_manual(values=c(1,3))+
   scale_color_manual(values=c('#D55E00','#56B4E9'))+
@@ -279,11 +257,12 @@ Plot
 ```{r}
 its.plot <- ggplot(city.data.its,
          aes(year,n.obs45km))+
-  geom_ribbon(aes(ymin = counter.predictions - (1.96*counter.se), ymax = counter.predictions + (1.96*counter.se)), fill = '#D55E00', alpha = 0.5)+
-  geom_line(aes(year,counter.predictions),color="red",lty=2)+
-  geom_ribbon(aes(ymin = its.predictions - (1.96*its.se), ymax = its.predictions + (1.96*its.se)), fill = '#56B4E9', alpha = 0.5)+
-  geom_line(aes(year,its.predictions),color="black",lty=1)+
-  geom_point(alpha=0.3)+
+  geom_ribbon(aes(ymin = counter.predictions - (1.96*counter.se), ymax = counter.predictions + (1.96*counter.se)), fill = '#D55E00', alpha = 0.2, linetype = 2)+
+  geom_line(aes(year,counter.predictions),color='#D55E00',lty=1)+
+  geom_ribbon(aes(ymin = its.predictions - (1.96*its.se), ymax = its.predictions + (1.96*its.se)), fill = '#56B4E9', alpha = 0.2, linetype = 2)+
+  geom_line(aes(year,its.predictions),color='#56B4E9',lty=2)+
+    geom_vline(xintercept = 2021, linetype="dashed")+
+  geom_point()+
       labs(title = "Interrupted time series",
        x = "Year",
        y = "Bee observations")+
