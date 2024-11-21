@@ -90,22 +90,31 @@ Creating Synthetic Control with MicroSynth to Extract Confidence Intervals
 #Creating a variable for treatment
 city.data <- city.data |>
     mutate(
-        Treatment = ifelse(City == "Philadelphia",1,0)
+        Treatment = ifelse(City == "Philadelphia" &  year > 2021,1,0)
     )
 ```
 
 
-*adjust the following code for my data*
-#```{r}
-sea1 <- microsynth(seattledmi, 
-                   idvar="ID", timevar="time", intvar="Intervention", 
-                   start.pre=1, end.pre=12, end.post=16, 
-                   match.out=match.out, match.covar=cov.var, 
-                   result.var=match.out, omnibus.var=match.out,
-                   test="lower",
+not converging
+```{r}
+cov.var <- c("area_km2", "Temp", "Prec", "tcc45km", "imperv45km")
+match.out <- c("n.obs45km", "Population")
+
+sea1 <- microsynth(city.data, 
+                   idvar="City", timevar="year", intvar="Treatment", 
+                   start.pre=2010, end.pre=2021, end.post=2023,
+                   match.out = FALSE, match.covar = FALSE,
+                   match.out.min= match.out, match.covar.min=cov.var, 
+                   result.var= FALSE,
+                   period = 1,
+                   test="twosided",
+                   check.feas=TRUE, use.backup = TRUE,
+                   perm=0, jack=FALSE,
                    n.cores = min(parallel::detectCores(), 2))
 sea1
-#```
+
+?microsynth
+```
 
 
 ## Visualizing the data
@@ -130,6 +139,8 @@ trendplot <- gbifcity_out %>% plot_trends()+
         x = "Year",
         y = "Bee observations")
 trendplot
+
+?plot_trends
 ```
 
 **Differences**: plot of difference in outcome variable between the observed (treated) unit and the estimated outcome of the synthetic control.
@@ -152,14 +163,16 @@ weightplot
 
 **Balance Table**: A table with values of the predictors/variables so that you can see how similar the synthetic control is to observed variables of the treated unit.
 ```{r}
-balancetab <- gbifcity_out %>% grab_balance_table()
+balancetab <- gbifcity_out %>% grab_balance_table() %>%
+    mutate(synthetic_percent = ,
+           donor_percent = )
 ```
 
 ## Inference
 
 **In-space placebos**: The same as difference plot above, this time comparing each control unit to the synthetic control. This is to see if the difference between the treated unit and the synthetic control actually stands out as significantly greater. 
 ```{r}
-placebos <- gbifcity_out %>% plot_placebos()+
+placebos <- gbifcity_out %>% plot_placebos(prune = TRUE)+
   Asia_Theme +
   labs(title = NULL, subtitle = NULL,
         x = "Year",
@@ -186,7 +199,7 @@ significance.tab <- as.data.frame(significance.tab)
 gbifcity_out %>% grab_synthetic_control()%>%
   filter(time_unit == 2022)%>%
   mutate(causal_estimate= synth_y - real_y)%>%
-  mutate(percent_estimate= (synth_y - real_y)/synth_y)%>%
+  mutate(percent_estimate= (causal_estimate/(synth_y + real_y))*100)%>%
   head
 ```
 
@@ -301,8 +314,8 @@ Confidence interval plot for effect sizes in 2022 for all approaches
 #Put coefficient and confidence interval estimates in single dataframe
 method <- c("Synthetic Control","Difference in Difference","Interrupted Time Series")
 estimate <- c(40.3,did.model$coefficients[4],its.model$coefficients[3])
-lwrCI <- c(70,confint(did.model)[4],confint(its.model)[3]) #replace SCM CI
-uprCI <- c(10,confint(did.model)[8],confint(its.model)[7]) #replace SCM CI
+lwrCI <- c(NA,confint(did.model)[4],confint(its.model)[3]) #replace SCM CI
+uprCI <- c(NA,confint(did.model)[8],confint(its.model)[7]) #replace SCM CI
 ci.data <- tibble(methods,estimate,lwrCI,uprCI)
 ```
 CI Forest plot
