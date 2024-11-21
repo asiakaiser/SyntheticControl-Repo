@@ -85,10 +85,18 @@ gbifcity_out <- city.data %>%
 ```
 
 
-Trying analysis with Microsynth
+Creating Synthetic Control with MicroSynth to Extract Confidence Intervals
+```{r}
+#Creating a variable for treatment
+city.data <- city.data |>
+    mutate(
+        Treatment = ifelse(City == "Philadelphia",1,0)
+    )
+```
+
 
 *adjust the following code for my data*
-```{r}
+#```{r}
 sea1 <- microsynth(seattledmi, 
                    idvar="ID", timevar="time", intvar="Intervention", 
                    start.pre=1, end.pre=12, end.post=16, 
@@ -97,7 +105,7 @@ sea1 <- microsynth(seattledmi,
                    test="lower",
                    n.cores = min(parallel::detectCores(), 2))
 sea1
-```
+#```
 
 
 ## Visualizing the data
@@ -208,8 +216,6 @@ prediction_intervals <- predict(
 city.data.did <- cbind(city.data.did, prediction_intervals)
 ```
 
-### Difference in Difference Plot
-
 *Difference in Difference plot with most similar city*
 ```{r}
 palette.colors(palette = "Okabe-Ito")
@@ -251,8 +257,8 @@ summary(its.model)
 confint(its.model)
 ```
 
-### ITS Plot
 
+ITS Plot
 ```{r}
 #Creating prediction intervals
 city.data.its <-city.data.its %>% mutate(
@@ -288,12 +294,37 @@ its.plot <- ggplot(city.data.its,
     Asia_Theme
 its.plot
 ```
+#Confidence Intervals
+
+Confidence interval plot for effect sizes in 2022 for all approaches
+```{r}
+#Put coefficient and confidence interval estimates in single dataframe
+method <- c("Synthetic Control","Difference in Difference","Interrupted Time Series")
+estimate <- c(40.3,did.model$coefficients[4],its.model$coefficients[3])
+lwrCI <- c(70,confint(did.model)[4],confint(its.model)[3]) #replace SCM CI
+uprCI <- c(10,confint(did.model)[8],confint(its.model)[7]) #replace SCM CI
+ci.data <- tibble(methods,estimate,lwrCI,uprCI)
+```
+CI Forest plot
+```{r}
+ci.plot <- ggplot(ci.data,
+       aes(x = estimate, y = method))+
+    geom_errorbar(
+        aes(xmin = lwrCI, xmax = uprCI), width = 0.25)+
+    geom_point(size = 2.5)+
+    geom_vline(xintercept = 0, linetype = 2)+
+    theme_minimal()+
+    Asia_Theme
+ci.plot
+    
+```
+
 
 # Save Figures
 ```{r}
 trends.figure <- ggarrange(trendplot,did.trendplot,
                     labels = c("A", "B"))
-
+ggsave("figures/ConfidenceIntervals_plot.png", plot = ci.plot)
 ggsave("figures/Trend plot.png", plot = trendplot)
 ggsave("figures/Difference plot.png", plot = diffplot)
 ggsave("figures/Weight plot.png", plot = weightplot)
