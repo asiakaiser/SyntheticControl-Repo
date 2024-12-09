@@ -164,8 +164,8 @@ weightplot
 **Balance Table**: A table with values of the predictors/variables so that you can see how similar the synthetic control is to observed variables of the treated unit.
 ```{r}
 balancetab <- gbifcity_out %>% grab_balance_table() %>%
-    mutate(synthetic_percent = ,
-           donor_percent = )
+    mutate(synthetic_percent_diff = ((Philadelphia - synthetic_Philadelphia)/Philadelphia)*100,
+           donor_percent_diff = ((Philadelphia - donor_sample)/Philadelphia)*100)
 ```
 
 ## Inference
@@ -199,55 +199,44 @@ significance.tab <- as.data.frame(significance.tab)
 gbifcity_out %>% grab_synthetic_control()%>%
   filter(time_unit == 2022)%>%
   mutate(causal_estimate= synth_y - real_y)%>%
-  mutate(percent_estimate= (causal_estimate/(synth_y + real_y))*100)%>%
+  mutate(percent_estimate= (causal_estimate/synth_y)*100)%>%
   head
 ```
 
 # Other Approaches
 
-## Difference in Difference w/ most similar city
+##BACI w/ most similar city
 ```{r}
 #Creating the relevant dummy variables
-city.data.did <- city.data %>%
+city.data.baci <- city.data %>%
   mutate(Time = ifelse(year >= 2021, 1, 0)) %>%
   mutate(Treated = if_else(City == "Philadelphia",1,0))%>%
     filter(City == "Philadelphia" | City == "Chicago")
 
 #Running the Difference in Difference Regression
-did.model <- lm(n.obs45km ~ Treated*Time, data = city.data.did)
-summary(did.model)
-confint(did.model)
-
-
-prediction_intervals <- predict(
-  did.model, 
-  newdata = city.data.did, 
-  interval = "confidence", 
-  level = 0.95
-  )
-
-city.data.did <- cbind(city.data.did, prediction_intervals)
+baci.model <- lm(n.obs45km ~ Treated*Time, data = city.data.baci)
+summary(baci.model)
+confint(baci.model)
 ```
 
 *Difference in Difference plot with most similar city*
 ```{r}
 palette.colors(palette = "Okabe-Ito")
 
-did.trendplot <- ggplot(city.data.did, aes(x = year, y = n.obs45km, color = City)) +
+baci.trendplot <- ggplot(city.data.baci, aes(x = year, y = n.obs45km, color = City)) +
     geom_line(linewidth = 1, aes(linetype = City))+
-    geom_ribbon(aes(ymin = lwr, ymax = upr, fill = City), alpha = 0.2, linetype = 0)+
   geom_point()+
-  scale_linetype_manual(values=c(1,3))+
-  scale_color_manual(values=c('#D55E00','#56B4E9'))+
+  scale_linetype_manual(values=c(4,1))+
+  scale_color_manual(values=c('#D55E00','darkgrey'))+
   geom_vline(xintercept = 2021, linetype="dashed")+
-  labs(title = "Difference in Difference",
+  labs(title = "BACI",
        x = "Year",
        y = "Bee observations") +
   theme_minimal()+
   theme(legend.position="bottom",legend.title = element_blank())+
   Asia_Theme
 
-did.trendplot
+baci.trendplot
 ```
 
 ## Interrupted Time Series (ITS) Regression
@@ -257,9 +246,9 @@ https://rpubs.com/chrissyhroberts/1006858
 ```{r}
 #Creating the relevant dummy variables in dataframe
 city.data.its <- city.data %>%
-  filter(City== "Philadelphia" & year >= 2017)%>%
-  mutate(Treated = if_else(year >= 2021, 1, 0))%>%
-  mutate(Time_since= if_else(year < 2021, 0, (year-2020)))
+  filter(City == "Philadelphia" & year >= 2015)%>%
+  mutate(Treated = if_else(year > 2021, 1, 0))%>%
+  mutate(Time_since= if_else(year <= 2021, 0, (year-2020)))
 city.data.its
 
 #Running the its regression
@@ -273,14 +262,8 @@ confint(its.model)
 
 ITS Plot
 ```{r}
-#Creating prediction intervals
-city.data.its <-city.data.its %>% mutate(
-  its.predictions = predictSE.gls (its.model,city.data.its, se.fit=T)$fit,
-  its.se = predictSE.gls (its.model,city.data.its, se.fit=T)$se
-  )
-
 #Creating model for counterfactual
-city.data.its.2 <-filter(city.data.its, year < 2021)
+city.data.its.2 <-filter(city.data.its, year <= 2021)
 its.counter = gls(n.obs45km ~ year, data = city.data.its.2, correlation= corARMA(p=1, q=1, form = ~ year),method="ML")
 
 #Adding prediction intervals for counterfactual back to dataframe
@@ -293,19 +276,23 @@ city.data.its <-city.data.its %>% mutate(
 Plot
 ```{r}
 its.plot <- ggplot(city.data.its,
-         aes(year,n.obs45km))+
-  geom_ribbon(aes(ymin = counter.predictions - (1.96*counter.se), ymax = counter.predictions + (1.96*counter.se)), fill = '#D55E00', alpha = 0.2, linetype = 2)+
-  geom_line(aes(year,counter.predictions),color='#D55E00', lty = 3)+
-  geom_ribbon(aes(ymin = its.predictions - (1.96*its.se), ymax = its.predictions + (1.96*its.se)), fill = '#56B4E9', alpha = 0.2, linetype = 1)+
-  geom_line(color='#56B4E9', lty = 1)+
+         aes(x = year, y = n.obs45km))+
+  geom_ribbon(aes(ymin = counter.predictions - (1.96*counter.se), ymax = counter.predictions + (1.96*counter.se)), fill = 'turquoise', alpha = .2, linetype = 2)+
+  geom_line(aes(year,counter.predictions),color='turquoise', lty = 4)+
+  geom_point(color = 'darkgrey')+
+    geom_line(color = 'darkgrey', linewidth = 1)+
+      scale_linetype_manual(values=1)+
     geom_vline(xintercept = 2021, linetype="dashed")+
-  geom_point()+
+    xlim(2015,2023)+
+    ylim(0,425)+
       labs(title = "Interrupted time series",
        x = "Year",
        y = "Bee observations")+
     theme_minimal()+
     Asia_Theme
 its.plot
+
+?geom_line
 ```
 #Confidence Intervals
 
@@ -313,9 +300,9 @@ Confidence interval plot for effect sizes in 2022 for all approaches
 ```{r}
 #Put coefficient and confidence interval estimates in single dataframe
 method <- c("Synthetic Control","Difference in Difference","Interrupted Time Series")
-estimate <- c(40.3,did.model$coefficients[4],its.model$coefficients[3])
-lwrCI <- c(NA,confint(did.model)[4],confint(its.model)[3]) #replace SCM CI
-uprCI <- c(NA,confint(did.model)[8],confint(its.model)[7]) #replace SCM CI
+estimate <- c(40.3,baci.model$coefficients[4],its.model$coefficients[3])
+lwrCI <- c(NA,confint(baci.model)[4],confint(its.model)[3]) #replace SCM CI
+uprCI <- c(NA,confint(baci.model)[8],confint(its.model)[7]) #replace SCM CI
 ci.data <- tibble(methods,estimate,lwrCI,uprCI)
 ```
 CI Forest plot
@@ -335,15 +322,15 @@ ci.plot
 
 # Save Figures
 ```{r}
-trends.figure <- ggarrange(trendplot,did.trendplot,
+trends.figure <- ggarrange(trendplot,baci.trendplot,
                     labels = c("A", "B"))
 ggsave("figures/ConfidenceIntervals_plot.png", plot = ci.plot)
-ggsave("figures/Trend plot.png", plot = trendplot)
+ggsave("figures/Trend_plot.png", plot = trendplot)
 ggsave("figures/Difference plot.png", plot = diffplot)
 ggsave("figures/Weight plot.png", plot = weightplot)
 ggsave("figures/Placebos plot.png", plot = placebos)
 ggsave("figures/MPSE ratio plot.png", plot = mpseratio)
-ggsave("figures/Abundance estimates trend plot.png", plot = did.trendplot)
+ggsave("figures/BACI_plot.png", plot = baci.trendplot)
 ggsave("figures/ITS_plot.png", plot = its.plot)
 ggsave("figures/Method comparison plot.png", plot = trends.figure, height = 6, width = 12)
 ```
