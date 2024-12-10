@@ -85,38 +85,6 @@ gbifcity_out <- city.data %>%
 ```
 
 
-Creating Synthetic Control with MicroSynth to Extract Confidence Intervals
-```{r}
-#Creating a variable for treatment
-city.data <- city.data |>
-    mutate(
-        Treatment = ifelse(City == "Philadelphia" &  year > 2021,1,0)
-    )
-```
-
-
-not converging
-```{r}
-cov.var <- c("area_km2", "Temp", "Prec", "tcc45km", "imperv45km")
-match.out <- c("n.obs45km", "Population")
-
-sea1 <- microsynth(city.data, 
-                   idvar="City", timevar="year", intvar="Treatment", 
-                   start.pre=2010, end.pre=2021, end.post=2023,
-                   match.out = FALSE, match.covar = FALSE,
-                   match.out.min= match.out, match.covar.min=cov.var, 
-                   result.var= FALSE,
-                   period = 1,
-                   test="twosided",
-                   check.feas=TRUE, use.backup = TRUE,
-                   perm=0, jack=FALSE,
-                   n.cores = min(parallel::detectCores(), 2))
-sea1
-
-?microsynth
-```
-
-
 ## Visualizing the data
 
 Creating Personal Theme
@@ -137,10 +105,12 @@ trendplot <- gbifcity_out %>% plot_trends()+
   Asia_Theme +
   labs(title = "Synthetic Control Method", caption = NULL,
         x = "Year",
-        y = "Bee observations")
+        y = "Bee observations")+
+    ylim(0,425)+
+    theme(legend.position = "none")
 trendplot
 
-?plot_trends
+
 ```
 
 **Differences**: plot of difference in outcome variable between the observed (treated) unit and the estimated outcome of the synthetic control.
@@ -172,7 +142,7 @@ balancetab <- gbifcity_out %>% grab_balance_table() %>%
 
 **In-space placebos**: The same as difference plot above, this time comparing each control unit to the synthetic control. This is to see if the difference between the treated unit and the synthetic control actually stands out as significantly greater. 
 ```{r}
-placebos <- gbifcity_out %>% plot_placebos(prune = TRUE)+
+placebos <- gbifcity_out %>% plot_placebos(prune = FALSE)+
   Asia_Theme +
   labs(title = NULL, subtitle = NULL,
         x = "Year",
@@ -226,15 +196,16 @@ palette.colors(palette = "Okabe-Ito")
 baci.trendplot <- ggplot(city.data.baci, aes(x = year, y = n.obs45km, color = City)) +
     geom_line(linewidth = 1, aes(linetype = City))+
   geom_point()+
-  scale_linetype_manual(values=c(4,1))+
+  scale_linetype_manual(values=c(3,1))+
   scale_color_manual(values=c('#D55E00','darkgrey'))+
   geom_vline(xintercept = 2021, linetype="dashed")+
   labs(title = "BACI",
        x = "Year",
        y = "Bee observations") +
   theme_minimal()+
-  theme(legend.position="bottom",legend.title = element_blank())+
-  Asia_Theme
+  theme(legend.position = "none")+
+  Asia_Theme+
+    ylim(0,425)
 
 baci.trendplot
 ```
@@ -291,19 +262,17 @@ its.plot <- ggplot(city.data.its,
     theme_minimal()+
     Asia_Theme
 its.plot
-
-?geom_line
 ```
 #Confidence Intervals
 
 Confidence interval plot for effect sizes in 2022 for all approaches
 ```{r}
 #Put coefficient and confidence interval estimates in single dataframe
-method <- c("Synthetic Control","Difference in Difference","Interrupted Time Series")
-estimate <- c(40.3,baci.model$coefficients[4],its.model$coefficients[3])
+method <- c("Synthetic Control","Before-After Control Impact","Interrupted Time Series")
+estimate <- c(-40.3,baci.model$coefficients[4],its.model$coefficients[3])
 lwrCI <- c(NA,confint(baci.model)[4],confint(its.model)[3]) #replace SCM CI
 uprCI <- c(NA,confint(baci.model)[8],confint(its.model)[7]) #replace SCM CI
-ci.data <- tibble(methods,estimate,lwrCI,uprCI)
+ci.data <- tibble(method,estimate,lwrCI,uprCI)
 ```
 CI Forest plot
 ```{r}
@@ -322,8 +291,8 @@ ci.plot
 
 # Save Figures
 ```{r}
-trends.figure <- ggarrange(trendplot,baci.trendplot,
-                    labels = c("A", "B"))
+trends.figure <- ggarrange(trendplot,baci.trendplot,its.plot,
+                    labels = c("A", "B","C"), nrow = 1)
 ggsave("figures/ConfidenceIntervals_plot.png", plot = ci.plot)
 ggsave("figures/Trend_plot.png", plot = trendplot)
 ggsave("figures/Difference plot.png", plot = diffplot)
@@ -340,7 +309,7 @@ ggsave("figures/Method comparison plot.png", plot = trends.figure, height = 6, w
 citation()
 devtools::session_info()
 
-c("tidyverse", "tidysynth") %>%
+c("tidyverse", "tidysynth","nlme") %>%
   map(citation) %>%
   print(style = "text")
 ```
