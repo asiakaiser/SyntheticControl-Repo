@@ -1,0 +1,185 @@
+\documentclass{article}\usepackage[]{graphicx}\usepackage[]{xcolor}
+% maxwidth is the original width if it is less than linewidth
+% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlsng}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hldef}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+\usepackage[sc]{mathpazo}
+\renewcommand{\sfdefault}{lmss}
+\renewcommand{\ttdefault}{lmtt}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{2}
+\usepackage[unicode=true,pdfusetitle,
+ bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+ breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+ {hyperref}
+\hypersetup{
+ pdfstartview={XYZ null null 1}}
+
+\makeatletter
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\topfraction}{0.8}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\floatpagefraction}{0.75}
+
+\makeatother
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+
+
+
+
+
+
+
+
+The results below are generated from an R script.
+
+library(scpi)library(data.table)rm(list = ls())city.data <- read.csv("city_dat.csv")#creating variablesdonor.cities <- unique(city.data$City)donor.cities <- donor.cities[!(donor.cities == "Philadelphia")]feature.vars <- c("Temp","Prec","imperv45km","Population","n.obs45km","tcc45km")#scdata objectdat <- scdata(df = city.data,
+              id.var = "City",
+              time.var = "year",
+              outcome.var = "n.obs45km",
+              period.pre = (2015:2021),
+              period.post = (2022),
+              unit.tr = "Philadelphia",
+              unit.co = donor.cities,
+              features = feature.vars,
+              cov.adj = list('Temp' = c("constant"),
+                             'Prec' = c("constant"),
+                             'imperv45km' = c("constant"),
+                             'Population' = c("trend"),
+                             'n.obs45km' = c("trend"),
+                             'tcc45km' = c("constant")))summary(dat)## 
+## Synthetic Control - Setup
+## 
+## Treated Unit:                              Philadelphia
+## Size of the donor pool:                    26
+## Features:                                  6
+## Pre-treatment period:                      2015 || 2021
+## Post-treatment period:                     2022 || 2022
+## Pre-treatment periods used in estimation per feature:
+##       Prec imperv45km    tcc45km Population       Temp  n.obs45km 
+##          7          7          7          7          7          7 
+## Covariates used for adjustment per feature:
+##  n.obs45km       Temp       Prec imperv45km Population    tcc45km 
+##          1          1          1          1          1          1
+#scest objectest.si  <- scest(data = dat)#seems to be no significant correlation between predictor variablescity.data.cors <- city.data |>
+    select("Temp","Prec","tcc45km","imperv45km","Population","n.obs45km")cor(city.data.cors)##                   Temp       Prec     tcc45km  imperv45km  Population   n.obs45km
+## Temp        1.00000000 -0.0561030 -0.05171121  0.01966318  0.06683463 -0.01625305
+## Prec       -0.05610300  1.0000000  0.07681150 -0.27841107 -0.19857136 -0.12760465
+## tcc45km    -0.05171121  0.0768115  1.00000000  0.77594210 -0.04649160  0.07961047
+## imperv45km  0.01966318 -0.2784111  0.77594210  1.00000000  0.27542096  0.16533567
+## Population  0.06683463 -0.1985714 -0.04649160  0.27542096  1.00000000  0.15941963
+## n.obs45km  -0.01625305 -0.1276046  0.07961047  0.16533567  0.15941963  1.00000000
+#Estimating uncertaintysims <- 1000u.order <- 1u.lags <- 0u.sigma <- "HC1"u.missp <- TRUEe.order <- 1e.lags <- 0e.method <- "gaussian"lgapp <- "linear"cores <- 1set.seed(0)#res.pi <- scpi(data = dat, sims = sims, e.method = e.method, e.order = e.order, e.lags = e.lags, u.order = u.order, u.lags = u.lags, lgapp = lgapp, u.sigma = u.sigma, u.missp = u.missp, cores = cores, w.constr = list(name = "simplex"))knitr::stitch('scpi.r')## 
+## 
+## processing file: scpi.Rnw
+## Error in parse_block(g[-1], g[1], params.src, markdown_mode): Duplicate chunk label 'setup', which has been used for the chunk:
+## options(width=90)
+## knitr::opts_chunk$set(out.width = '.6\\linewidth')
+## .knitr.title = if (exists('.knitr.title')) paste('\\title{', .knitr.title, '}', sep = '') else ''
+## .knitr.author = if (nzchar(.knitr.title) && exists('.knitr.author')) {
+##   paste('\\author{', .knitr.author, '%\n',
+##         '\\thanks{This report is automatically generated with the R package \\textbf{knitr}
+##         (version ', packageVersion('knitr'), ').}}', sep = '')
+## } else ''
+
+
+The R session information (including the OS info, R version and all
+packages used):
+
+sessionInfo()## R version 4.4.0 (2024-04-24)
+## Platform: x86_64-apple-darwin20
+## Running under: macOS 15.1.1
+## 
+## Matrix products: default
+## BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+## LAPACK: /Library/Frameworks/R.framework/Versions/4.4-x86_64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+## 
+## locale:
+## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+## 
+## time zone: America/Denver
+## tzcode source: internal
+## 
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## 
+## other attached packages:
+##  [1] lubridate_1.9.3   forcats_1.0.0     stringr_1.5.1     dplyr_1.1.4      
+##  [5] purrr_1.0.2       readr_2.1.5       tidyr_1.3.1       tibble_3.2.1     
+##  [9] ggplot2_3.5.1     tidyverse_2.0.0   data.table_1.15.4 scpi_3.0.0       
+## 
+## loaded via a namespace (and not attached):
+##  [1] gtable_0.3.5        xfun_0.45           lattice_0.22-6      tzdb_0.4.0         
+##  [5] numDeriv_2016.8-1.1 quadprog_1.5-8      vctrs_0.6.5         tools_4.4.0        
+##  [9] doSNOW_1.0.20       generics_0.1.3      parallel_4.4.0      sandwich_3.1-1     
+## [13] fansi_1.0.6         highr_0.11          pkgconfig_2.0.3     Matrix_1.7-0       
+## [17] lifecycle_1.0.4     cubature_2.1.1      compiler_4.4.0      CVXR_1.0-15        
+## [21] MatrixModels_0.5-3  munsell_0.5.1       codetools_0.2-20    SparseM_1.83       
+## [25] ECOSolveR_0.5.5     quantreg_5.98       snow_0.4-4          Qtools_1.5.9       
+## [29] gmp_0.7-5           Formula_1.2-5       pillar_1.9.0        MASS_7.3-60.2      
+## [33] iterators_1.0.14    boot_1.3-30         abind_1.4-8         foreach_1.5.2      
+## [37] glmx_0.2-1          gtools_3.9.5        tidyselect_1.2.1    stringi_1.8.4      
+## [41] quantdr_1.2.2       reshape2_1.4.4      splines_4.4.0       grid_4.4.0         
+## [45] colorspace_2.1-0    cli_3.6.3           magrittr_2.0.3      fastDummies_1.7.4  
+## [49] np_0.60-17          survival_3.5-8      utf8_1.2.4          withr_3.0.0        
+## [53] Rmpfr_1.0-0         conquer_1.3.3       scales_1.3.0        bit64_4.0.5        
+## [57] timechange_0.3.0    matrixStats_1.4.1   bit_4.0.5           hms_1.1.3          
+## [61] zoo_1.8-12          evaluate_0.24.0     knitr_1.48          lmtest_0.9-40      
+## [65] rlang_1.1.4         Rcpp_1.0.12         glue_1.8.0          rstudioapi_0.16.0  
+## [69] R6_2.5.1            plyr_1.8.9
+Sys.time()## [1] "2025-02-05 13:08:55 MST"
+
+
+
+\end{document}
