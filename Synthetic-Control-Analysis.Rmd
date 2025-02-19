@@ -74,7 +74,7 @@ dat <- scdata(df = city.data,
               time.var = "year",
               outcome.var = "nobs45km",
               period.pre = (2015:2021),
-              period.post = (2022),
+              period.post = (2022:2023),
               unit.tr = "Philadelphia",
               unit.co = donor.cities,
               features = feature.vars,
@@ -197,12 +197,10 @@ trendplot <- gbifcity_out %>% plot_trends()+
   labs(title = "Synthetic Control (SC)", caption = NULL,
         x = "Year",
         y = "Bee observations")+
-    ylim(0,350)+
-    xlim(2015,2022)+
+    ylim(0,425)+
+    xlim(2015,2023)+
     theme(legend.position = "none")
 trendplot
-
-
 ```
 
 **Differences**: plot of difference in outcome variable between the observed (treated) unit and the estimated outcome of the synthetic control.
@@ -273,7 +271,7 @@ gbifcity_out %>% grab_synthetic_control()%>%
 #Create relevant dummy variables
 city.data.ba <- city.data %>%
     filter(City == "Philadelphia")%>%
-    mutate(Treatment = ifelse(year > 2021, 1, 0))
+    mutate(Treatment = ifelse(year > 2021,1,0))
 
 #ba.model <- feols(nobs45km ~ Treatment, data = city.data.ba, cluster = ~City)
 
@@ -284,16 +282,17 @@ confint.ba <- confint(ba.model)
 confint.ba
 ```
 
+
 *BA plot with most similar city*
 ```{r}
 ba.plot <- ggplot(city.data.ba, aes(x = year, y = nobs45km)) +
     geom_line(linewidth = 1, color = "darkgrey")+
   geom_point(color = "darkgrey")+
-    geom_point(aes(x = 2017.5, y = ba.model$coefficients[1], color = "#8B0000", group = 1))+
-        geom_errorbar(aes(x = 2017.5, ymin = confint.ba[1], ymax = confint.ba[3], color = "#8B0000"), width = 0.25)+
-    geom_point(aes(x = 2021.5, y = ba.model$coefficients[2], color = "#8B0000", group = 1))+
-    geom_errorbar(aes(x = 2021.5, ymin = confint.ba[2], ymax = confint.ba[4], color = "#8B0000"), width = 0.25)+
-    geom_segment(aes(x = 2017.5, y = ba.model$coefficients[1], xend = 2021.5, yend =  ba.model$coefficients[2], colour = "#8B0000"))+
+    geom_point(aes(x = 2018, y = ba.model$coefficients[1], color = "#8B0000", group = 1))+
+        geom_errorbar(aes(x = 2018, ymin = 0, ymax = confint.ba[3], color = "#8B0000"), width = 0.25)+
+    geom_point(aes(x = 2022, y = ( ba.model$coefficients[1] + ba.model$coefficients[2]), color = "#8B0000", group = 1))+
+    geom_errorbar(aes(x = 2022, ymin = ( ba.model$coefficients[1] + confint.ba[2]), ymax = ( ba.model$coefficients[1] + confint.ba[4]), color = "#8B0000"), width = 0.25)+
+    geom_segment(aes(x = 2018, y = ba.model$coefficients[1], xend = 2022, yend =  ( ba.model$coefficients[1] + ba.model$coefficients[2]), colour = "#8B0000"))+
   geom_vline(xintercept = 2021, linetype="dashed")+
   labs(title = "Before-After (BA)",
        x = "Year",
@@ -301,8 +300,8 @@ ba.plot <- ggplot(city.data.ba, aes(x = year, y = nobs45km)) +
   theme_minimal()+
   theme(legend.position = "none")+
   Asia_Theme+
-    ylim(0,350)+
-    xlim(2015,2022)
+    ylim(0,425)+
+    xlim(2015,2023)
 ba.plot
 ```
 
@@ -313,8 +312,7 @@ ba.plot
 city.data.baci <- city.data %>%
   mutate(Time = ifelse(year > 2021, 1, 0)) %>%
   mutate(Treated = if_else(City == "Philadelphia",1,0))%>%
-    filter(City == "Philadelphia" | City == "Detroit")%>%
-    filter(year <= 2022)
+    filter(City == "Philadelphia" | City == "Detroit")
 
 #Running the Before- After Control Impact model
 #baci.model <- feols(nobs45km ~ Treated * Time, data = city.data.baci, cluster = ~City)
@@ -342,8 +340,8 @@ baci.plot <- ggplot(city.data.baci, aes(x = year, y = nobs45km, color = City)) +
   theme_minimal()+
   theme(legend.position = "none")+
   Asia_Theme+
-    ylim(0,350)+
-    xlim(2015,2022)
+    ylim(0,425)+
+    xlim(2015,2023)
 
 baci.plot
 ```
@@ -392,8 +390,8 @@ its.plot <- ggplot(city.data.its,
     geom_line(color = 'darkgrey', linewidth = 1)+
       scale_linetype_manual(values=1)+
     geom_vline(xintercept = 2021, linetype="dashed")+
-    xlim(2015,2022)+
-    ylim(0,350)+
+    xlim(2015,2023)+
+    ylim(0,425)+
       labs(title = "Interrupted Time Series (ITS)",
        x = "Year",
        y = "Bee observations")+
@@ -429,7 +427,7 @@ ci.plot
 ```
 CI plot - synthetic control method
 ```{r}
-method <- "    SC"
+method <- "   SC"
 estimate <- (238 - 291.089) 
 lwrCI <- (238 - 340.897)
 uprCI <- (238 - 276.048)
