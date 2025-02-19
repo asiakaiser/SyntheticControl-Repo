@@ -115,6 +115,32 @@ scplot(res.pi, e.out = TRUE)
 * Selecting the predictors
 * Generating weights
 
+# Reload in the Data
+```{r}
+rm(list = ls())
+city.data <- read.csv("data/cities.scm.input.csv")
+```
+
+DELETE THIS CHUNK AFTER RERUNNING 'GBIF DATA EXTRACTION SCRIPT'
+```{r}
+city.data <- city.data %>%
+    rename("nobs45km" = "n.obs45km")
+
+#Subset for cities with closer number of observations during treatment year
+cities.pool <- city.data %>%
+  filter(year == 2021) %>%
+  filter(nobs45km > 75 & nobs45km < 500)
+
+#Extract the city column
+cities.pool <-cities.pool$City
+
+#Keeping subset of cities in final dataframe
+#Removing Boston, Atlanta and Baltimore for experiencing this treatment. Removing Houston for abnormal abundance spike in 2016.
+city.data <- city.data %>%
+  filter(City != "Boston"& City != "Atlanta" & City != "Baltimore" & City != "Houston")%>%
+  filter(City %in% cities.pool)
+```
+
 ```{r}
 # Create synthetic control object
 gbifcity_out <- city.data %>%
@@ -168,7 +194,7 @@ Asia_Theme <- theme(
 ```{r}
 trendplot <- gbifcity_out %>% plot_trends()+
   Asia_Theme +
-  labs(title = "Synthetic Control Method", caption = NULL,
+  labs(title = "Synthetic Control (SC)", caption = NULL,
         x = "Year",
         y = "Bee observations")+
     ylim(0,350)+
@@ -251,7 +277,7 @@ city.data.ba <- city.data %>%
 
 #ba.model <- feols(nobs45km ~ Treatment, data = city.data.ba, cluster = ~City)
 
-ba.model <- lm(nobs45km ~ 1 + Treatment, data = city.data.ba)
+ba.model <- lm(nobs45km ~ Treatment, data = city.data.ba)
 summary(ba.model)
 
 confint.ba <- confint(ba.model)
@@ -269,7 +295,7 @@ ba.plot <- ggplot(city.data.ba, aes(x = year, y = nobs45km)) +
     geom_errorbar(aes(x = 2021.5, ymin = confint.ba[2], ymax = confint.ba[4], color = "#8B0000"), width = 0.25)+
     geom_segment(aes(x = 2017.5, y = ba.model$coefficients[1], xend = 2021.5, yend =  ba.model$coefficients[2], colour = "#8B0000"))+
   geom_vline(xintercept = 2021, linetype="dashed")+
-  labs(title = "BA",
+  labs(title = "Before-After (BA)",
        x = "Year",
        y = "Bee observations") +
   theme_minimal()+
@@ -292,7 +318,7 @@ city.data.baci <- city.data %>%
 
 #Running the Before- After Control Impact model
 #baci.model <- feols(nobs45km ~ Treated * Time, data = city.data.baci, cluster = ~City)
-baci.model <- lmer(nobs45km ~ Treated * Time + (1|City), data = city.data.baci)
+baci.model <- lm(nobs45km ~ Treated * Time, data = city.data.baci)
 
 summary(baci.model)
 confint.baci <- confint(baci.model)
@@ -310,7 +336,7 @@ baci.plot <- ggplot(city.data.baci, aes(x = year, y = nobs45km, color = City)) +
   scale_linetype_manual(values=c(3,1))+
   scale_color_manual(values=c('#D55E00','darkgrey'))+
   geom_vline(xintercept = 2021, linetype="dashed")+
-  labs(title = "BACI",
+  labs(title = "Before-After Control Impact (BACI)",
        x = "Year",
        y = "Bee observations") +
   theme_minimal()+
@@ -343,7 +369,7 @@ confint.its <- confint(its.model)
 ```
 
 
-ITS Plot
+ITS Plot - making predictions
 ```{r}
 #Creating model for counterfactual
 city.data.its.2 <-filter(city.data.its, year <= 2021)
@@ -368,7 +394,7 @@ its.plot <- ggplot(city.data.its,
     geom_vline(xintercept = 2021, linetype="dashed")+
     xlim(2015,2022)+
     ylim(0,350)+
-      labs(title = "ITS",
+      labs(title = "Interrupted Time Series (ITS)",
        x = "Year",
        y = "Bee observations")+
     theme_minimal()+
@@ -382,11 +408,12 @@ Confidence interval plot for effect sizes in 2022 for all approaches
 #Put coefficient and confidence interval estimates in single dataframe
 method <- c("BA","BACI","ITS")
 estimate <- c(ba.model$coefficients[2],baci.model$coefficients[4],its.model$coefficients[3])
-lwrCI <- c(confint.ba$`2.5 %`[2],confint.baci$`2.5 %`[4],confint.its[3]) #replace SCM CI
-uprCI <- c(confint.ba$`97.5 %`[2],confint.baci$`97.5 %`[4],confint.its[7])
+lwrCI <- c(confint.ba[2],confint.baci[4],confint.its[3]) #replace SCM CI
+uprCI <- c(confint.ba[4],confint.baci[8],confint.its[7])
 ci.data <- tibble(method,estimate,lwrCI,uprCI)
 ```
-CI Forest plot
+
+CI Forest plot - Alternative methods
 ```{r}
 ci.plot <- ggplot(ci.data,
        aes(x = estimate, y = method))+
@@ -394,26 +421,43 @@ ci.plot <- ggplot(ci.data,
         aes(xmin = lwrCI, xmax = uprCI), width = 0.25)+
     geom_point(size = 2.5)+
     geom_vline(xintercept = 0, linetype = 2)+
+    xlim(-160,350)+
     theme_minimal()+
-    Asia_Theme
+    Asia_Theme+
+    theme(axis.title.y = element_blank())
 ci.plot
-    
+```
+CI plot - synthetic control method
+```{r}
+method <- "    SC"
+estimate <- (238 - 291.089) 
+lwrCI <- (238 - 340.897)
+uprCI <- (238 - 276.048)
+scm.ci.data <- tibble(method,estimate,lwrCI,uprCI)
+
+scm.ci.plot <- ggplot(scm.ci.data,
+       aes(x = estimate, y = method))+
+    geom_errorbar(
+        aes(xmin = lwrCI, xmax = uprCI), width = 0.25)+
+    geom_point(size = 2.5)+
+    geom_vline(xintercept = 0, linetype = 2)+
+    xlim(-160,350)+
+    theme_minimal()+
+    Asia_Theme+
+    theme(axis.title.y = element_blank())
+scm.ci.plot
 ```
 
 
 # Save Figures
 ```{r}
-trends.figure <- ggarrange(ba.plot,baci.plot,its.plot,ci.plot,
-                    labels = c("A","B","C","D"), nrow = 2, ncol = 2)
-ggsave("figures/ConfidenceIntervals_plot.png", plot = ci.plot)
-ggsave("figures/Trend_plot.png", plot = trendplot)
+trends.figure <- ggarrange(its.plot,baci.plot,ba.plot,ci.plot,trendplot,scm.ci.plot,
+                    labels = c("A","B","C","D","E","F"), nrow = 3, ncol = 2)
 ggsave("figures/Difference plot.png", plot = diffplot)
 ggsave("figures/Weight plot.png", plot = weightplot, height = 6, width = 12)
 ggsave("figures/Placebos plot.png", plot = placebos)
 ggsave("figures/MPSE ratio plot.png", plot = mpseratio)
-ggsave("figures/BACI_plot.png", plot = baci.trendplot)
-ggsave("figures/ITS_plot.png", plot = its.plot)
-ggsave("figures/Method comparison plot.png", plot = trends.figure, height = 10, width = 12)
+ggsave("figures/Method comparison plot.png", plot = trends.figure, height = 12, width = 11)
 ```
 
 # Citations
