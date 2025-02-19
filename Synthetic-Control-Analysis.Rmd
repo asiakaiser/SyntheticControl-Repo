@@ -19,6 +19,7 @@ library(purrr)
 library(ggpubr)
 library(microsynth)
 library(fixest)
+library(lmerTest)
 ```
 
 # Load in Data
@@ -49,7 +50,7 @@ city.data <- city.data %>%
 
 # Synthetic Control Analysis in Scpi Package
 ```{r}
-write.csv(city.data, "city_dat.csv", row.names = FALSE)
+#write.csv(city.data, "city_dat.csv", row.names = FALSE)
 
 # try in scpi
 library(scpi)
@@ -61,10 +62,12 @@ city.data$Temp <-scale(city.data$Temp)
 city.data$Prec <- scale(city.data$Prec)
 city.data$imperv45km <- scale(city.data$imperv45km)
 city.data$Population <- scale(city.data$Population)
+city.data$tcc45km <- scale(city.data$tcc45km)
 
 feature.vars <- c("Temp","Prec","imperv45km","Population","nobs45km","tcc45km")
 city.data <- city.data %>%
   rename(unit.no = ID)
+
 
 dat <- scdata(df = city.data,
               id.var = "City",
@@ -75,21 +78,16 @@ dat <- scdata(df = city.data,
               unit.tr = "Philadelphia",
               unit.co = donor.cities,
               features = feature.vars,
-              cov.adj = list('Temp' = c("constant"),
-                             'Prec' = c("constant"),
-                             'imperv45km' = c("constant"),
-                             'Population' = c("trend"),
-                             'nobs45km' = c("trend"),
-                             'tcc45km' = c("constant")))
+              cov.adj = list('Temp' = c(),
+                             'Prec' = c(),
+                             'imperv45km' = c(),
+                             'Population' = c("constant","trend"),
+                             'nobs45km' = c("constant","trend"),
+                             'tcc45km' = c()))
 summary(dat)
 
 est.si  <- scest(data = dat)
-
-
-city.data.cors <- city.data |>
-    select("Temp","Prec","tcc45km","imperv45km","Population","nobs45km")
-
-cor(city.data.cors)
+summary(est.si)
 
 #Estimating uncertainty
 sims <- 1000
@@ -104,6 +102,8 @@ lgapp <- "linear"
 cores <- 1
 set.seed(0)
 res.pi <- scpi(data = dat, sims = sims, e.method = e.method, e.order = e.order, e.lags = e.lags, u.order = u.order, u.lags = u.lags, u.sigma = u.sigma, u.missp = u.missp, cores = cores, w.constr = list(name = "simplex"))
+?scpi
+summary(res.pi)
 
 scplot(res.pi, e.out = TRUE)
 ```
@@ -129,12 +129,12 @@ gbifcity_out <- city.data %>%
   
   #Generate aggregate predictors to fit weights to each unit
   generate_predictor(time_window = 2015:2023,
-                     Temperature = mean(Temp,rm.na= TRUE),
-                     Precipitation = mean(Prec, rm.na= TRUE),
                      Population = mean(Population, rm.na= TRUE),
                      ) %>%
-  
+
   generate_predictor(time_window = 2021,
+                     "Temperature" = Temp,
+                     "Precipitation" = Prec,
                      "Tree canopy cover" = tcc45km,                     ,
                      "Impervious surface" = imperv45km,
                      "Area (km2)" = area_km2
@@ -171,7 +171,7 @@ trendplot <- gbifcity_out %>% plot_trends()+
   labs(title = "Synthetic Control Method", caption = NULL,
         x = "Year",
         y = "Bee observations")+
-    ylim(0,425)+
+    ylim(0,350)+
     xlim(2015,2022)+
     theme(legend.position = "none")
 trendplot
@@ -246,10 +246,14 @@ gbifcity_out %>% grab_synthetic_control()%>%
 ```{r}
 #Create relevant dummy variables
 city.data.ba <- city.data %>%
-    mutate(Treated = ifelse(year >= 2021 & City == "Philadelphia", 1, 0))
+    filter(City == "Philadelphia")%>%
+    mutate(Treatment = ifelse(year > 2021, 1, 0))
 
-ba.model <- feols(nobs45km ~ Treated, data = city.data.ba, cluster = ~City)
+#ba.model <- feols(nobs45km ~ Treatment, data = city.data.ba, cluster = ~City)
+
+ba.model <- lm(nobs45km ~ 1 + Treatment, data = city.data.ba)
 summary(ba.model)
+
 confint.ba <- confint(ba.model)
 confint.ba
 ```
@@ -260,9 +264,9 @@ ba.plot <- ggplot(city.data.ba, aes(x = year, y = nobs45km)) +
     geom_line(linewidth = 1, color = "darkgrey")+
   geom_point(color = "darkgrey")+
     geom_point(aes(x = 2017.5, y = ba.model$coefficients[1], color = "#8B0000", group = 1))+
-        geom_errorbar(aes(x = 2017.5, ymin = 0, ymax = confint.ba$`97.5 %`[1], color = "#8B0000"), width = 0.25)+
+        geom_errorbar(aes(x = 2017.5, ymin = confint.ba[1], ymax = confint.ba[3], color = "#8B0000"), width = 0.25)+
     geom_point(aes(x = 2021.5, y = ba.model$coefficients[2], color = "#8B0000", group = 1))+
-    geom_errorbar(aes(x = 2021.5, ymin = confint.ba$`2.5 %`[2], ymax = confint.ba$`97.5 %`[2], color = "#8B0000"), width = 0.25)+
+    geom_errorbar(aes(x = 2021.5, ymin = confint.ba[2], ymax = confint.ba[4], color = "#8B0000"), width = 0.25)+
     geom_segment(aes(x = 2017.5, y = ba.model$coefficients[1], xend = 2021.5, yend =  ba.model$coefficients[2], colour = "#8B0000"))+
   geom_vline(xintercept = 2021, linetype="dashed")+
   labs(title = "BA",
@@ -271,7 +275,7 @@ ba.plot <- ggplot(city.data.ba, aes(x = year, y = nobs45km)) +
   theme_minimal()+
   theme(legend.position = "none")+
   Asia_Theme+
-    ylim(0,425)+
+    ylim(0,350)+
     xlim(2015,2022)
 ba.plot
 ```
@@ -281,13 +285,15 @@ ba.plot
 ```{r}
 #Creating the relevant dummy variables
 city.data.baci <- city.data %>%
-  mutate(Time = ifelse(year >= 2021, 1, 0)) %>%
+  mutate(Time = ifelse(year > 2021, 1, 0)) %>%
   mutate(Treated = if_else(City == "Philadelphia",1,0))%>%
     filter(City == "Philadelphia" | City == "Detroit")%>%
     filter(year <= 2022)
 
 #Running the Before- After Control Impact model
-baci.model <- feols(nobs45km ~ Treated * Time, data = city.data.baci, cluster = ~City)
+#baci.model <- feols(nobs45km ~ Treated * Time, data = city.data.baci, cluster = ~City)
+baci.model <- lmer(nobs45km ~ Treated * Time + (1|City), data = city.data.baci)
+
 summary(baci.model)
 confint.baci <- confint(baci.model)
 confint.baci
@@ -310,7 +316,7 @@ baci.plot <- ggplot(city.data.baci, aes(x = year, y = nobs45km, color = City)) +
   theme_minimal()+
   theme(legend.position = "none")+
   Asia_Theme+
-    ylim(0,425)+
+    ylim(0,350)+
     xlim(2015,2022)
 
 baci.plot
@@ -361,7 +367,7 @@ its.plot <- ggplot(city.data.its,
       scale_linetype_manual(values=1)+
     geom_vline(xintercept = 2021, linetype="dashed")+
     xlim(2015,2022)+
-    ylim(0,425)+
+    ylim(0,350)+
       labs(title = "ITS",
        x = "Year",
        y = "Bee observations")+
