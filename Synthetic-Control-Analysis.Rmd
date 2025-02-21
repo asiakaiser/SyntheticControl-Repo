@@ -115,9 +115,12 @@ year <- rep(2015:2023,2)
 Treatment <- c(rep("Philadelphia",9), rep("Synthetic Control",9))
 
 scpi.data <- tibble(nobs45km,year,Treatment)
+<<<<<<< HEAD
 
 (decline.2023 <- ((340.878- 299)/340.878)*100)
 (decline.2022 <- ((291.089-238)/291.089)*100) 
+=======
+>>>>>>> 1bfb87fa280521ecea5a25a48a7dc59a0b0d6fa2
 ```
 
 GGplot of Scpi estimates
