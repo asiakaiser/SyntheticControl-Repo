@@ -106,7 +106,55 @@ res.pi <- scpi(data = dat, sims = sims, e.method = e.method, e.order = e.order, 
 summary(res.pi)
 
 scplot(res.pi, e.out = TRUE)
+
+nobs45km <- as.numeric(c(res.pi$data$Y.pre[,1],
+                                   res.pi$data$Y.post[,1],
+                                   res.pi$est.results$Y.pre.fit[,1],
+                                   res.pi$est.results$Y.post.fit[,1]))
+year <- rep(2015:2023,2)
+Treatment <- c(rep("Philadelphia",9), rep("Synthetic Control",9))
+
+scpi.data <- tibble(nobs45km,year,Treatment)
+
+(decline.2023 <- ((340.878- 299)/340.878)*100)
+(decline.2022 <- ((291.089-238)/291.089)*100) 
 ```
+
+GGplot of Scpi estimates
+
+Creating Personal Theme
+```{r}
+Asia_Theme <- theme(
+  plot.title = element_text(size = 20),
+  plot.caption = element_text(size = 16),
+  axis.title = element_text(size = 20),
+  axis.text = element_text(size = 20),
+  axis.text.x = element_text(size = 20),
+  legend.text = element_text(size= 20))
+```
+
+```{r}
+scpi.plot <- ggplot(scpi.data, aes(x = year, y = nobs45km, color = Treatment)) +
+    geom_line(linewidth = 1, aes(linetype = Treatment))+
+  geom_point()+
+    geom_point(aes(x = 2022, y = 291.089, color = "#c443b2", group = 1))+
+        geom_errorbar(aes(x = 2022, ymin = 276.048, ymax = 340.897, color = "#c443b2"), width = 0.25)+
+    geom_point(aes(x = 2023, y = 340.878, color = "#c443b2", group = 1))+
+    geom_errorbar(aes(x = 2023, ymin = 332.277, ymax = 390.306, color = "#c443b2"), width = 0.25)+
+  scale_linetype_manual(values=c(1,4,1))+
+  scale_color_manual(values=c("#c443b2","darkgrey","#c443b2"))+
+  geom_vline(xintercept = 2021, linetype="dashed")+
+  labs(title = "Synthetic Control (SC)",
+       x = "Year",
+       y = "Bee observations") +
+  theme_minimal()+
+  theme(legend.position = "none")+
+  Asia_Theme+
+    ylim(0,425)+
+    xlim(2015,2023.25)
+scpi.plot
+```
+
 
 # Synthetic Control Analysis: Abundance
 
@@ -117,7 +165,6 @@ scplot(res.pi, e.out = TRUE)
 
 # Reload in the Data
 ```{r}
-rm(list = ls())
 city.data <- read.csv("data/cities.scm.input.csv")
 ```
 
@@ -177,18 +224,6 @@ gbifcity_out <- city.data %>%
 
 
 ## Visualizing the data
-
-Creating Personal Theme
-```{r}
-Asia_Theme <- theme(
-  plot.title = element_text(size = 20),
-  plot.caption = element_text(size = 16),
-  axis.title = element_text(size = 20),
-  axis.text = element_text(size = 20),
-  axis.text.x = element_text(size = 20),
-  legend.text = element_text(size= 20))
-```
-
 
 **Trends**: plot of trends of observed (treated) unit compared to synthetic control over time, with dashed vertical line representing the treatment event. 
 ```{r}
@@ -428,9 +463,9 @@ ci.plot
 CI plot - synthetic control method
 ```{r}
 method <- "   SC"
-estimate <- (238 - 291.089) 
-lwrCI <- (238 - 340.897)
-uprCI <- (238 - 276.048)
+estimate <- (299 - 340.878) 
+lwrCI <- (299 - 390.306)
+uprCI <- (299 - 332.277)
 scm.ci.data <- tibble(method,estimate,lwrCI,uprCI)
 
 scm.ci.plot <- ggplot(scm.ci.data,
@@ -449,7 +484,7 @@ scm.ci.plot
 
 # Save Figures
 ```{r}
-trends.figure <- ggarrange(its.plot,baci.plot,ba.plot,ci.plot,trendplot,scm.ci.plot,
+trends.figure <- ggarrange(its.plot,baci.plot,ba.plot,ci.plot,scpi.plot,scm.ci.plot,
                     labels = c("A","B","C","D","E","F"), nrow = 3, ncol = 2)
 ggsave("figures/Difference plot.png", plot = diffplot)
 ggsave("figures/Weight plot.png", plot = weightplot, height = 6, width = 12)
