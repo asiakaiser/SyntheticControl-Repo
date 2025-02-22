@@ -63,8 +63,9 @@ city.data$Prec <- scale(city.data$Prec)
 city.data$imperv45km <- scale(city.data$imperv45km)
 city.data$Population <- scale(city.data$Population)
 city.data$tcc45km <- scale(city.data$tcc45km)
+city.data$area_km2 <- scale(city.data$area_km2)
 
-feature.vars <- c("Temp","Prec","imperv45km","Population","nobs45km","tcc45km")
+feature.vars <- c("Temp","Prec","imperv45km","Population","nobs45km","tcc45km","area_km2")
 city.data <- city.data %>%
   rename(unit.no = ID)
 
@@ -83,7 +84,8 @@ dat <- scdata(df = city.data,
                              'imperv45km' = c(),
                              'Population' = c("constant","trend"),
                              'nobs45km' = c("constant","trend"),
-                             'tcc45km' = c()))
+                             'tcc45km' = c(),
+                             'area_km2' = c()))
 summary(dat)
 
 est.si  <- scest(data = dat)
@@ -115,12 +117,9 @@ year <- rep(2015:2023,2)
 Treatment <- c(rep("Philadelphia",9), rep("Synthetic Control",9))
 
 scpi.data <- tibble(nobs45km,year,Treatment)
-<<<<<<< HEAD
 
-(decline.2023 <- ((340.878- 299)/340.878)*100)
-(decline.2022 <- ((291.089-238)/291.089)*100) 
-=======
->>>>>>> 1bfb87fa280521ecea5a25a48a7dc59a0b0d6fa2
+(decline.2023 <- ((329.979- 299)/329.979)*100)
+(decline.2022 <- ((283.317-238)/283.317)*100) 
 ```
 
 GGplot of Scpi estimates
