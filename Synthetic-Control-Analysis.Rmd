@@ -139,10 +139,10 @@ Asia_Theme <- theme(
 scpi.plot <- ggplot(scpi.data, aes(x = year, y = nobs45km, color = Treatment)) +
     geom_line(linewidth = 1, aes(linetype = Treatment))+
   geom_point()+
-    geom_point(aes(x = 2022, y = 291.089, color = "#c443b2", group = 1))+
-        geom_errorbar(aes(x = 2022, ymin = 276.048, ymax = 340.897, color = "#c443b2"), width = 0.25)+
-    geom_point(aes(x = 2023, y = 340.878, color = "#c443b2", group = 1))+
-    geom_errorbar(aes(x = 2023, ymin = 332.277, ymax = 390.306, color = "#c443b2"), width = 0.25)+
+    geom_point(aes(x = 2022, y = 283.317, color = "#c443b2", group = 1))+
+        geom_errorbar(aes(x = 2022, ymin = 268.804, ymax = 328.980, color = "#c443b2"), width = 0.25)+
+    geom_point(aes(x = 2023, y = 329.979, color = "#c443b2", group = 1))+
+    geom_errorbar(aes(x = 2023, ymin = 321.669, ymax = 376.095, color = "#c443b2"), width = 0.25)+
   scale_linetype_manual(values=c(1,4,1))+
   scale_color_manual(values=c("#c443b2","darkgrey","#c443b2"))+
   geom_vline(xintercept = 2021, linetype="dashed")+
@@ -383,10 +383,50 @@ baci.plot <- ggplot(city.data.baci, aes(x = year, y = nobs45km, color = City)) +
 baci.plot
 ```
 
+Before- After Control Impact (BACI) Analysis w/ Cleveland
+```{r}
+#Creating the relevant dummy variables
+city.data.baci.2 <- city.data %>%
+  mutate(Time = ifelse(year > 2021, 1, 0)) %>%
+  mutate(Treated = if_else(City == "Philadelphia",1,0))%>%
+    filter(City == "Philadelphia" | City == "Cleveland")
+
+#Running the Before- After Control Impact model
+#baci.model <- feols(nobs45km ~ Treated * Time, data = city.data.baci, cluster = ~City)
+baci.model.2 <- lm(nobs45km ~ Treated * Time, data = city.data.baci.2)
+
+summary(baci.model.2)
+confint.baci.2 <- confint(baci.model.2)
+confint.baci.2
+#shows significant increases in Philadelphia bee abundance when compared to Detroit
+```
+
+*BACI plot with Cleveland*
+```{r}
+palette.colors(palette = "Okabe-Ito")
+
+baci.plot <- ggplot(city.data.baci.2, aes(x = year, y = nobs45km, color = City)) +
+    geom_line(linewidth = 1, aes(linetype = City))+
+  geom_point()+
+  scale_linetype_manual(values=c(3,1))+
+  scale_color_manual(values=c('#D55E00','darkgrey'))+
+  geom_vline(xintercept = 2021, linetype="dashed")+
+  labs(title = "Before-After Control Impact (BACI)",
+       x = "Year",
+       y = "Bee observations") +
+  theme_minimal()+
+  Asia_Theme+
+    ylim(0,425)+
+    xlim(2015,2023)
+
+baci.plot
+```
+
 ## Interrupted Time Series (ITS) Regression
 
 Explanation of ITS modelling: 
 https://rpubs.com/chrissyhroberts/1006858 
+
 ```{r}
 #Creating the relevant dummy variables in dataframe
 city.data.its <- city.data %>%
@@ -465,9 +505,9 @@ ci.plot
 CI plot - synthetic control method
 ```{r}
 method <- "   SC"
-estimate <- (299 - 340.878) 
-lwrCI <- (299 - 390.306)
-uprCI <- (299 - 332.277)
+estimate <- (299 - 329.979) 
+lwrCI <- (299 - 376.095)
+uprCI <- (299 - 321.669)
 scm.ci.data <- tibble(method,estimate,lwrCI,uprCI)
 
 scm.ci.plot <- ggplot(scm.ci.data,
@@ -500,7 +540,7 @@ ggsave("figures/Method comparison plot.png", plot = trends.figure, height = 12, 
 citation()
 devtools::session_info()
 
-c("tidyverse", "tidysynth","nlme") %>%
+c("tidyverse", "tidysynth","nlme","scpi") %>%
   map(citation) %>%
   print(style = "text")
 ```
