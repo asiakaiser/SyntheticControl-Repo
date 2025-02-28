@@ -405,7 +405,7 @@ confint.baci.2
 ```{r}
 palette.colors(palette = "Okabe-Ito")
 
-baci.plot <- ggplot(city.data.baci.2, aes(x = year, y = nobs45km, color = City)) +
+baci.plot.2 <- ggplot(city.data.baci.2, aes(x = year, y = nobs45km, color = City)) +
     geom_line(linewidth = 1, aes(linetype = City))+
   geom_point()+
   scale_linetype_manual(values=c(3,1))+
@@ -419,7 +419,7 @@ baci.plot <- ggplot(city.data.baci.2, aes(x = year, y = nobs45km, color = City))
     ylim(0,425)+
     xlim(2015,2023)
 
-baci.plot
+baci.plot.2
 ```
 
 ## Interrupted Time Series (ITS) Regression
@@ -528,6 +528,7 @@ scm.ci.plot
 ```{r}
 trends.figure <- ggarrange(its.plot,baci.plot,ba.plot,ci.plot,scpi.plot,scm.ci.plot,
                     labels = c("A","B","C","D","E","F"), nrow = 3, ncol = 2)
+ggsave("figures/BACIplot_Cleveland.png", plot = baci.plot.2)
 ggsave("figures/Difference plot.png", plot = diffplot)
 ggsave("figures/Weight plot.png", plot = weightplot, height = 6, width = 12)
 ggsave("figures/Placebos plot.png", plot = placebos)
