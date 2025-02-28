@@ -29,7 +29,7 @@ city.data <- read.csv("data/cities.scm.input.csv")
 ```
 
 DELETE THIS CHUNK AFTER RERUNNING 'GBIF DATA EXTRACTION SCRIPT'
-```{r}
+```{r,echo=FALSE}
 city.data <- city.data %>%
     rename("nobs45km" = "n.obs45km")
 
@@ -48,7 +48,7 @@ city.data <- city.data %>%
   filter(City %in% cities.pool)
 ```
 
-# Synthetic Control Analysis in Scpi Package
+# Synthetic Control Analysis in scpi Package
 ```{r}
 #write.csv(city.data, "city_dat.csv", row.names = FALSE)
 
@@ -158,7 +158,7 @@ scpi.plot
 ```
 
 
-# Synthetic Control Analysis: Abundance
+# Synthetic Control Analysis in tidysynth Package
 
 ## Creating the Synthetic Control
 * Creating the control objects
@@ -171,7 +171,7 @@ city.data <- read.csv("data/cities.scm.input.csv")
 ```
 
 DELETE THIS CHUNK AFTER RERUNNING 'GBIF DATA EXTRACTION SCRIPT'
-```{r}
+```{r,echo=FALSE}
 city.data <- city.data %>%
     rename("nobs45km" = "n.obs45km")
 
@@ -190,6 +190,7 @@ city.data <- city.data %>%
   filter(City %in% cities.pool)
 ```
 
+Tidysynth 
 ```{r}
 # Create synthetic control object
 gbifcity_out <- city.data %>%
@@ -321,7 +322,7 @@ confint.ba
 
 
 *BA plot with most similar city*
-```{r}
+```{r, warning = FALSE}
 ba.plot <- ggplot(city.data.ba, aes(x = year, y = nobs45km)) +
     geom_line(linewidth = 1, color = "darkgrey")+
   geom_point(color = "darkgrey")+
@@ -362,7 +363,7 @@ confint.baci
 ```
 
 *BACI plot with most similar city*
-```{r}
+```{r, warning=FALSE}
 palette.colors(palette = "Okabe-Ito")
 
 baci.plot <- ggplot(city.data.baci, aes(x = year, y = nobs45km, color = City)) +
@@ -402,7 +403,7 @@ confint.baci.2
 ```
 
 *BACI plot with Cleveland*
-```{r}
+```{r, warning=FALSE}
 palette.colors(palette = "Okabe-Ito")
 
 baci.plot.2 <- ggplot(city.data.baci.2, aes(x = year, y = nobs45km, color = City)) +
@@ -525,7 +526,7 @@ scm.ci.plot
 
 
 # Save Figures
-```{r}
+```{r,warning=FALSE}
 trends.figure <- ggarrange(its.plot,baci.plot,ba.plot,ci.plot,scpi.plot,scm.ci.plot,
                     labels = c("A","B","C","D","E","F"), nrow = 3, ncol = 2)
 ggsave("figures/BACIplot_Cleveland.png", plot = baci.plot.2)
