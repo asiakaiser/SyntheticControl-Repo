@@ -24,12 +24,13 @@ library(iNEXT)
 # Load in Data
 #```{r}
 rm(list = ls())
+setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo/data_cleaning_code")
 
 #test dataset
-cities.test <- read.csv("data/cities.test.csv")
+cities.test <- read.csv("raw_data/cities.test.csv")
 
 #GBIF data
-gbif.all <- read.csv("data/Gbif_All.csv", header=T, na.strings=c("","NA"))
+gbif.all <- read.csv("raw_data/Gbif_All.csv", header=T, na.strings=c("","NA"))
 ```
 
 # Data Cleaning
@@ -163,5 +164,6 @@ cities.test <- cities.test %>%
 # Save dataframe with summarized GBIF variables
 #```{r}
 #Save processed data files in output folder
+setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo")
 write.csv(cities.test, "data/cities.scm.input.csv", row.names = FALSE)
 ```

@@ -19,7 +19,7 @@ library(raster)
 
 # Load in Data
 #```{r}
-setwd("~/Library/CloudStorage/GoogleDrive-asiakaiser@gmail.com/My Drive/Dissertation/Chapter 2/Chapter 2_R")
+setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo/data_cleaning_code")
 cities.all <- read.csv("data/City Data - US Cities.csv")
 cities.all
 ```
@@ -49,8 +49,8 @@ cities.all <- cbind(cities.all,values)
 
 # Save dataframe with bioclimatic variables
 #```{r}
-setwd("~/Library/CloudStorage/GoogleDrive-asiakaiser@gmail.com/My Drive/Dissertation/Chapter 2/Chapter 2_R")
-write.csv(cities.all, "data/cities.csv", row.names = FALSE)
+setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo/data_cleaning_code")
+write.csv(cities.all, "raw_data/cities.csv", row.names = FALSE)
 ```
 
 

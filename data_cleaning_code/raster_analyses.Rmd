@@ -27,13 +27,13 @@ library(purrr)
 ```{r}
 #Clear global environment
 rm(list = ls())
-setwd("~/Library/CloudStorage/GoogleDrive-asiakaiser@gmail.com/My Drive/Dissertation/Chapter 2/Chapter 2_R")
+setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo/data_cleaning_code")
 
 # Load in Data
-cities.test <- read.csv("data/cities.csv")
+cities.test <- read.csv("raw_data/cities.csv")
 cities.test <- cities.test[cities.test$X2023 >= 300000,]
-tcc_path <- "data/nlcd_tcc_CONUS_2021_v2021-4/nlcd_tcc_conus_2021_v2021-4.tif"
-imperv_path <- "data/nlcd_2021_impervious_l48_20230630/nlcd_2021_impervious_l48_20230630.img"
+tcc_path <- "raw_data/nlcd_tcc_CONUS_2021_v2021-4/nlcd_tcc_conus_2021_v2021-4.tif"
+imperv_path <- "raw_data/nlcd_2021_impervious_l48_20230630/nlcd_2021_impervious_l48_20230630.img"
 
 # Load rasters into R
 tcc_ras <- rast(tcc_path)  # Tree canopy cover raster
@@ -97,8 +97,8 @@ plot(city_coords$geometry)
 #```{r}
 #Save processed data files in output folder
 #testing data with tcc
-setwd("~/Library/CloudStorage/GoogleDrive-asiakaiser@gmail.com/My Drive/Dissertation/Chapter 2/Chapter 2_R")
-write.csv(cities.test, "data/cities.test.csv", row.names = FALSE)
+setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo/data_cleaning_code")
+write.csv(cities.test, "raw_data/cities.test.csv", row.names = FALSE)
 ```
 
 # Citations
