@@ -1,0 +1,167 @@
+---
+title: "GBIF Data Extraction"
+author: "Asia Kaiser"
+date: "2024-06-05"
+site: workflowr::wflow_site
+output:
+  workflowr::wflow_html:
+    toc: false
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Packages
+#```{r}
+library(sf)
+library(tidyverse)
+library(iNEXT)
+```
+
+# Load in Data
+#```{r}
+rm(list = ls())
+
+#test dataset
+cities.test <- read.csv("data/cities.test.csv")
+
+#GBIF data
+gbif.all <- read.csv("data/Gbif_All.csv", header=T, na.strings=c("","NA"))
+```
+
+# Data Cleaning
+
+## Removing non-target taxa
+* Filtering data to just keep bees
+* Inputting *genus spp* in all blank cells in the species column
+#```{r}
+gbif <- gbif.all %>% 
+  filter(gbif.all$family== c("Halictidae","Apidae","Colletidae","Melittidae","Megachilidae","Adrenidae"))%>%
+  mutate(species = ifelse(is.na(species), paste0(genus, " spp"), species))
+```
+
+Code for creating smaller testing dataset
+#```{r}
+gbif.sub <- gbif[sample(nrow(gbif), 10000), ]
+```
+
+## Assigning observations to cities
+* Convert gbif data to an sf object
+* Create buffer distances
+* Create group column for "Outside City" which all observations not in a buffer will automatically be categorized to.
+
+#```{r}
+sf_data <- st_as_sf(gbif, coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
+
+buffer45_distance <- 45000 #buffer distance
+
+sf_data$City45km <- "Outside City"
+```
+
+* For loop to assign all observations to a city
+#```{r}
+for (i in 1:nrow(cities.test)) {
+  specific_point <- st_sfc(st_point(c(cities.test$Long[i], cities.test$Lat[i])), crs = 4326)
+  buffer45 <- st_buffer(specific_point, dist = buffer45_distance)
+  in_buffer45 <- st_within(sf_data, buffer45, sparse = FALSE)
+  sf_data$City45km[in_buffer45] <- cities.test$City[i]
+}
+
+#Turn sf file back into a dataframe
+gbif <- as.data.frame(sf_data)
+unique(gbif$City45km)
+```
+
+##Group Summaries
+
+### Abundance values
+#```{r}
+# Aggregating data by year and city
+gbif.obs.45km <- gbif %>%
+  group_by(City45km, year) %>%
+  summarise(n.obs45km = n(), .groups = 'drop')
+
+# Transforming the cities data and merging with aggregated data
+cities.test <- cities.test %>%
+  pivot_longer(
+    cols = starts_with("X"),   # Select columns that start with "X"
+    names_to = "year",         # Name of the new "year" column
+    names_prefix = "X",        # Remove the "X" prefix from the column names
+    values_to = "Population"   # Name of the new "population" column
+  ) %>%
+  mutate(year = as.numeric(year)) %>%
+  left_join(gbif.obs.45km, by = c("City" = "City45km", "year")) %>%
+  mutate(n.obs45km = replace_na(n.obs45km, 0))
+
+# View the transformed and merged data frame
+head(cities.test)
+```
+
+### Extracting Biodiversity Values
+
+* Summarize species counts per site
+* Pivot dataframe wide to get into correct format for iNEXT
+* Run iNEXT for estimated richness and diversity values
+* Add values back to city dataframe
+
+#```{r}
+
+# Prepare gbif data and convert to wide format
+gbif.wide.45 <- gbif %>%
+  filter(City45km != "Outside City" & year >= min(cities.test$year)) %>%
+  unite("year_city45km", year, City45km, sep = "_") %>%
+  count(year_city45km, species) %>%
+  pivot_wider(names_from = year_city45km, values_from = n, values_fill = 0)
+
+# Prepare iNEXT input data
+gbif.iNEXTinput.45 <- as.data.frame(gbif.wide.45[,-1])
+
+# Run iNEXT to find richness data
+gbif.iNEXT.45 <- iNEXT(gbif.iNEXTinput.45, q = 0, datatype = "abundance")
+
+# Extract richness and diversity data
+gbif.iNEXTvals.45km <- gbif.iNEXT.45$AsyEst %>%
+  filter(Diversity %in% c("Species richness", "Shannon diversity")) %>%
+  select(Assemblage, Diversity, Estimator) %>%
+  pivot_wider(names_from = Diversity, values_from = Estimator, names_prefix = "est_") %>%
+  separate(Assemblage, c("year", "City"), sep = "_") %>%
+  rename(rich45km = `est_Species richness`, shann45km = `est_Shannon diversity`) %>%
+  mutate(year = as.numeric(year))
+
+# Merge with the original city dataset
+cities.test <- cities.test %>%
+  left_join(gbif.iNEXTvals.45km, by = c("City", "year"))%>%
+  mutate(rich45km = replace_na(rich45km, 0))%>%
+  mutate(shann45km = replace_na(shann45km, 0))
+
+# View the updated cities.test data frame
+head(cities.test)
+```
+
+#Further narrowing donor pool
+* Filter out cities experiencing treatment or facing abnormal shock
+* Subsetting to cities with close number of observations
+#```{r}
+#Subset for cities with closer number of observations during treatment year
+cities.pool <- cities.test %>%
+  filter(year == 2021) %>%
+  filter(n.obs45km > 75 & n.obs45km < 500)
+
+#Extract the city column
+cities.pool <-cities.pool$City
+
+#Keeping subset of cities in final dataframe
+#Removing Boston, Atlanta and Baltimore for experiencing this treatment. Removing Houston for abnormal abundance spike in 2016.
+cities.test <- cities.test %>%
+  filter(City != "Boston"& City != "Atlanta" & City != "Baltimore" & City != "Houston")%>%
+  filter(City %in% cities.pool)
+```
+
+# Save dataframe with summarized GBIF variables
+#```{r}
+#Save processed data files in output folder
+write.csv(cities.test, "data/cities.scm.input.csv", row.names = FALSE)
+```

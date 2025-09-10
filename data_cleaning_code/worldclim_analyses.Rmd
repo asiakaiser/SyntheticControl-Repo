@@ -1,0 +1,56 @@
+---
+title: "City Selection"
+author: "Asia Kaiser"
+date: "2024-06-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Packages
+```{r}
+library(tidyverse)
+library(geodata)
+library(sf)
+library(raster)
+```
+
+# Load in Data
+#```{r}
+setwd("~/Library/CloudStorage/GoogleDrive-asiakaiser@gmail.com/My Drive/Dissertation/Chapter 2/Chapter 2_R")
+cities.all <- read.csv("data/City Data - US Cities.csv")
+cities.all
+```
+
+# Extract Bioclim Variables
+* Download bioclim data and select variables of interest
+* 
+#```{r}
+
+# Create a directory to store the downloaded data
+dir.create("data/worldclim_data")
+
+# Download bioclim variables using geodata and specify the path
+bioclim_data <- geodata::worldclim_global(var = 'bio', res = 10, path = "worldclim_data")
+
+bioclim_data_1_12 <- bioclim_data[[c(1,12)]]
+names(bioclim_data_1_12) <- c("Temp","Prec")
+bioclim.crs <- crs(bioclim_data_1_12)
+
+city.cords <- SpatialPoints(cbind(cities.all$Long, cities.all$Lat), 
+                      proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84"))
+city.cords <- st_as_sf(city.cords, crs = bioclim.crs)
+
+values <- extract(bioclim_data_1_12,city.cords)
+cities.all <- cbind(cities.all,values)
+```
+
+# Save dataframe with bioclimatic variables
+#```{r}
+setwd("~/Library/CloudStorage/GoogleDrive-asiakaiser@gmail.com/My Drive/Dissertation/Chapter 2/Chapter 2_R")
+write.csv(cities.all, "data/cities.csv", row.names = FALSE)
+```
+
+

@@ -1,0 +1,113 @@
+---
+title: "Raster Data Extraction"
+author: "Asia Kaiser"
+date: "2024-06-05"
+site: workflowr::wflow_site
+output:
+  workflowr::wflow_html:
+    toc: false
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Packages
+```{r}
+library(terra)
+library(sf)
+library(sp)
+library(ggpubr)
+library(purrr)
+```
+
+# Load Data
+```{r}
+#Clear global environment
+rm(list = ls())
+setwd("~/Library/CloudStorage/GoogleDrive-asiakaiser@gmail.com/My Drive/Dissertation/Chapter 2/Chapter 2_R")
+
+# Load in Data
+cities.test <- read.csv("data/cities.csv")
+cities.test <- cities.test[cities.test$X2023 >= 300000,]
+tcc_path <- "data/nlcd_tcc_CONUS_2021_v2021-4/nlcd_tcc_conus_2021_v2021-4.tif"
+imperv_path <- "data/nlcd_2021_impervious_l48_20230630/nlcd_2021_impervious_l48_20230630.img"
+
+# Load rasters into R
+tcc_ras <- rast(tcc_path)  # Tree canopy cover raster
+imperv_ras <- rast(imperv_path)  # Imperviousness raster
+```
+
+# Extract Raster Data
+
+Extract City Coordinates
+```{r}
+# Extract city coordinates
+city_coords <- st_as_sf(cities.test, coords = c("Long", "Lat"), crs = 4326) # Use EPSG 4326 for WGS84
+```
+
+Extract Raster CRS
+```{r}
+# Get the CRS of the rasters (assuming both rasters have the same CRS)
+crs_rasters <- crs(tcc_ras)
+```
+
+Create buffers and function to extract summed buffer values
+#```{r}
+# Create a 45 km buffer around cities
+buffer_radius <- 45000  # 45,000 meters
+cities_buffer <- st_transform(st_buffer(st_transform(city_coords, crs_rasters), dist = buffer_radius), crs_rasters)
+
+# Function to extract summed raster values for buffers
+extract_raster_sum <- function(raster, buffers) {
+  extracted_values <- terra::extract(raster, as(buffers, "SpatVector"), fun = sum, na.rm = TRUE)
+  extracted_values[, 2]  # Assuming the summed values are in the second column
+}
+```
+
+Extract summed tree canopy cover and impervious surface values from each city
+#```{r}
+# Extract summed values for the 45 km buffer from both rasters
+cities.test$tcc45km <- extract_raster_sum(tcc_ras, cities_buffer)
+cities.test$imperv45km <- extract_raster_sum(imperv_ras, cities_buffer)
+
+# View the final dataframe
+print(cities.test)
+```
+
+### Project cities points onto rasters
+```{r}
+plot(tcc_ras,
+     main = "Tree Canopy Cover")
+plot(city_coords$geometry,
+     pch = 19)
+```
+
+```{r}
+plot(imperv_ras,
+     main = "Impervious Surface")
+plot(city_coords$geometry)
+```
+
+
+
+# Save dataframe with summarized raster variables
+#```{r}
+#Save processed data files in output folder
+#testing data with tcc
+setwd("~/Library/CloudStorage/GoogleDrive-asiakaiser@gmail.com/My Drive/Dissertation/Chapter 2/Chapter 2_R")
+write.csv(cities.test, "data/cities.test.csv", row.names = FALSE)
+```
+
+# Citations
+```{r}
+citation()
+devtools::session_info()
+
+c("terra") %>%
+  map(citation) %>%
+  print(style = "text")
+```
+
