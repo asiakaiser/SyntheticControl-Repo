@@ -32,11 +32,17 @@ setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo
 # Load in Data
 cities.test <- read.csv("raw_data/cities.csv")
 cities.test <- cities.test[cities.test$X2023 >= 300000,]
-tcc_path <- "raw_data/nlcd_tcc_CONUS_2021_v2021-4/nlcd_tcc_conus_2021_v2021-4.tif"
-imperv_path <- "raw_data/nlcd_2021_impervious_l48_20230630/nlcd_2021_impervious_l48_20230630.img"
+cities.test <- cities.test[1:10, ]
+tcc_path <- "raw_data/nlcd_tcc_CONUS_2021_v2023-5_wgs84/nlcd_tcc_conus_wgs84_v2023-5_20210101_20211231.tif"
+imperv_path <- "raw_data/Annual_NLCD_FctImp_2021_CU_C1V1/Annual_NLCD_FctImp_2021_CU_C1V1.tif"
 
 # Load rasters into R
 tcc_ras <- rast(tcc_path)  # Tree canopy cover raster
+    
+    # Remove tcc values above 100
+    tcc_ras <- clamp(tcc_ras, lower = 0, upper = 100, values = TRUE) 
+    range(values(tcc_ras_clean), na.rm = TRUE)  # should show 0–100
+
 imperv_ras <- rast(imperv_path)  # Imperviousness raster
 ```
 
@@ -50,28 +56,33 @@ city_coords <- st_as_sf(cities.test, coords = c("Long", "Lat"), crs = 4326) # Us
 
 Extract Raster CRS
 ```{r}
-# Get the CRS of the rasters (assuming both rasters have the same CRS)
+# Force imperv_ras into the same CRS as tcc_ras
+imperv_ras <- project(imperv_ras, tcc_ras)
+
+#Save crs
 crs_rasters <- crs(tcc_ras)
 ```
 
 Create buffers and function to extract summed buffer values
-#```{r}
+```{r}
 # Create a 45 km buffer around cities
 buffer_radius <- 45000  # 45,000 meters
-cities_buffer <- st_transform(st_buffer(st_transform(city_coords, crs_rasters), dist = buffer_radius), crs_rasters)
+cities_buffer <- st_transform( #transform city coordinates to raster crs
+    st_buffer(st_transform(city_coords, crs_rasters), dist = buffer_radius), crs_rasters)
+
 
 # Function to extract summed raster values for buffers
-extract_raster_sum <- function(raster, buffers) {
-  extracted_values <- terra::extract(raster, as(buffers, "SpatVector"), fun = sum, na.rm = TRUE)
-  extracted_values[, 2]  # Assuming the summed values are in the second column
+extract_raster_mean <- function(raster, buffers) {
+  extracted_values <- terra::extract(raster, as(buffers, "SpatVector"), fun = mean, na.rm = TRUE)
+  return(extracted_values[, 2])  # column with mean
 }
 ```
 
 Extract summed tree canopy cover and impervious surface values from each city
-#```{r}
+```{r}
 # Extract summed values for the 45 km buffer from both rasters
-cities.test$tcc45km <- extract_raster_sum(tcc_ras, cities_buffer)
-cities.test$imperv45km <- extract_raster_sum(imperv_ras, cities_buffer)
+cities.test$tcc45km <- extract_raster_mean(tcc_ras, cities_buffer)
+cities.test$imperv45km <- extract_raster_mean(imperv_ras, cities_buffer)
 
 # View the final dataframe
 print(cities.test)
