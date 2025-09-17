@@ -160,6 +160,19 @@ cities.test <- cities.test %>%
   filter(City %in% cities.pool)
 ```
 
+Adding Socioeconomic variables
+```{r}
+setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo/data_cleaning_code")
+socio.var <- read.csv("raw_data/SCM_socioeconomic - predictors.csv")
+
+summary(socio.var)
+socio.var <- socio.var %>%
+    select(City,Median_HH_Income,PovertyIndex,BA_Population,MedianHomeValue)
+
+cities.test <- left_join(cities.test, socio.var, by = "City")
+```
+
+
 # Save dataframe with summarized GBIF variables
 ```{r}
 #Save processed data files in output folder

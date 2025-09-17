@@ -28,29 +28,11 @@ rm(list = ls())
 city.data <- read.csv("data/cities.scm.input.csv")
 ```
 
-DELETE THIS CHUNK AFTER RERUNNING 'GBIF DATA EXTRACTION SCRIPT'
-```{r,echo=FALSE}
-city.data <- city.data %>%
-    rename("nobs45km" = "n.obs45km")
-
-#Subset for cities with closer number of observations during treatment year
-cities.pool <- city.data %>%
-  filter(year == 2021) %>%
-  filter(nobs45km > 75 & nobs45km < 500)
-
-#Extract the city column
-cities.pool <-cities.pool$City
-
-#Keeping subset of cities in final dataframe
-#Removing Boston, Atlanta and Baltimore for experiencing this treatment. Removing Houston for abnormal abundance spike in 2016.
-city.data <- city.data %>%
-  filter(City != "Boston"& City != "Atlanta" & City != "Baltimore" & City != "Houston")%>%
-  filter(City %in% cities.pool)
-```
-
 # Synthetic Control Analysis in scpi Package
 ```{r}
 #write.csv(city.data, "city_dat.csv", row.names = FALSE)
+city.data <- city.data %>%
+    rename("nobs45km" = "n.obs45km")
 
 # try in scpi
 library(scpi)
@@ -170,32 +152,13 @@ scpi.plot
 city.data <- read.csv("data/cities.scm.input.csv")
 ```
 
-DELETE THIS CHUNK AFTER RERUNNING 'GBIF DATA EXTRACTION SCRIPT'
-```{r,echo=FALSE}
-city.data <- city.data %>%
-    rename("nobs45km" = "n.obs45km")
-
-#Subset for cities with closer number of observations during treatment year
-cities.pool <- city.data %>%
-  filter(year == 2021) %>%
-  filter(nobs45km > 75 & nobs45km < 500)
-
-#Extract the city column
-cities.pool <-cities.pool$City
-
-#Keeping subset of cities in final dataframe
-#Removing Boston, Atlanta and Baltimore for experiencing this treatment. Removing Houston for abnormal abundance spike in 2016.
-city.data <- city.data %>%
-  filter(City != "Boston"& City != "Atlanta" & City != "Baltimore" & City != "Houston")%>%
-  filter(City %in% cities.pool)
-```
 
 Tidysynth 
 ```{r}
 # Create synthetic control object
 gbifcity_out <- city.data %>%
   # Initial synthetic control object
-  synthetic_control(outcome = nobs45km, # outcome
+  synthetic_control(outcome = n.obs45km, # outcome
                     unit = City, # unit index in the panel data
                     time = year, # time index in the panel data
                     i_unit = "Philadelphia", # unit where the intervention occurred
@@ -503,6 +466,7 @@ ci.plot <- ggplot(ci.data,
     theme(axis.title.y = element_blank())
 ci.plot
 ```
+
 CI plot - synthetic control method
 ```{r}
 method <- "   SC"
