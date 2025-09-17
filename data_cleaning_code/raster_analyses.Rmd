@@ -32,16 +32,13 @@ setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo
 # Load in Data
 cities.test <- read.csv("raw_data/cities.csv")
 cities.test <- cities.test[cities.test$X2023 >= 300000,]
-cities.test <- cities.test[1:10, ]
 tcc_path <- "raw_data/nlcd_tcc_CONUS_2021_v2023-5_wgs84/nlcd_tcc_conus_wgs84_v2023-5_20210101_20211231.tif"
 imperv_path <- "raw_data/Annual_NLCD_FctImp_2021_CU_C1V1/Annual_NLCD_FctImp_2021_CU_C1V1.tif"
 
 # Load rasters into R
 tcc_ras <- rast(tcc_path)  # Tree canopy cover raster
-    
     # Remove tcc values above 100
     tcc_ras <- clamp(tcc_ras, lower = 0, upper = 100, values = TRUE) 
-    range(values(tcc_ras_clean), na.rm = TRUE)  # should show 0–100
 
 imperv_ras <- rast(imperv_path)  # Imperviousness raster
 ```
