@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(sf)
 library(tidyverse)
 library(iNEXT)
+library(microsynth)
 ```
 
 
@@ -22,15 +23,17 @@ library(iNEXT)
 rm(list = ls())
 setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo")
 #cities dataset
-cities.data <- read.csv("data/cities.scm.input.csv")
+city.data <- read.csv("data/cities.scm.input.csv")
 
-#GBIF data
-gbif.all.mam <- read.csv("data_cleaning_code/raw_data/0008839-250914085247600.csv", header=T, na.strings=c("","NA"))
+#GBIF mammal data
+setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo")
+gbif.all.mam <- read.delim("data_cleaning_code/raw_data/0008839-250914085247600.csv", header = TRUE,na.strings =c("","NA"), quote = "")
+
 ```
 
 Code for creating smaller testing dataset
 #```{r}
-gbif.sub.mam <- gbif.all.mam[sample(nrow(gbif), 10000), ]
+gbif.sub.mam <- gbif.all.mam[sample(nrow(gbif.all.mam), 10000), ]
 #```
 
 ## Assigning observations to cities
@@ -39,7 +42,7 @@ gbif.sub.mam <- gbif.all.mam[sample(nrow(gbif), 10000), ]
 * Create group column for "Outside City" which all observations not in a buffer will automatically be categorized to.
 
 ```{r}
-sf_data <- st_as_sf(gbif.sub.mam, coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
+sf_data <- st_as_sf(gbif.all.mam, coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
 
 buffer45_distance <- 45000 #buffer distance
 
@@ -48,11 +51,11 @@ sf_data$City45km <- "Outside City"
 
 * For loop to assign all observations to a city
 ```{r}
-for (i in 1:nrow(cities.test)) {
-  specific_point <- st_sfc(st_point(c(cities.data$Long[i], cities.data$Lat[i])), crs = 4326)
+for (i in 1:nrow(city.data)) {
+  specific_point <- st_sfc(st_point(c(city.data$Long[i], city.data$Lat[i])), crs = 4326)
   buffer45 <- st_buffer(specific_point, dist = buffer45_distance)
   in_buffer45 <- st_within(sf_data, buffer45, sparse = FALSE)
-  sf_data$City45km[in_buffer45] <- cities.data$City[i]
+  sf_data$City45km[in_buffer45] <- city.data$City[i]
 }
 
 #Turn sf file back into a dataframe
@@ -70,13 +73,83 @@ gbif.obs.45km <- gbif %>%
   summarise(n.obs45km_mammals = n(), .groups = 'drop')
 
 # Transforming the cities data and merging with aggregated data
-cities.data <- cities.data %>%
+city.data <- city.data %>%
   mutate(year = as.numeric(year)) %>%
   left_join(gbif.obs.45km, by = c("City" = "City45km", "year")) %>%
   mutate(n.obs45km_mammals = replace_na(n.obs45km_mammals, 0))
 
 # View the transformed and merged data frame
-summary(cities.data)
+summary(city.data)
 ```
+# Synthetic Control Analysis in scpi Package with mammal data
+```{r}
+#write.csv(city.data, "city_dat.csv", row.names = FALSE)
+city.data <- city.data %>%
+    rename("nobs45km_mammals" = "n.obs45km_mammals")
 
+# try in scpi
+library(scpi)
+library(data.table)
+
+donor.cities <- unique(city.data$City)
+donor.cities <- donor.cities[!(donor.cities == "Philadelphia")]
+city.data$Temp <-scale(city.data$Temp)
+city.data$Prec <- scale(city.data$Prec)
+city.data$imperv45km <- scale(city.data$imperv45km)
+city.data$Population <- scale(city.data$Population)
+city.data$tcc45km <- scale(city.data$tcc45km)
+city.data$area_km2 <- scale(city.data$area_km2)
+
+feature.vars <- c("Temp","Prec","imperv45km","Population","nobs45km_mammals","tcc45km","area_km2")
+city.data <- city.data %>%
+  rename(unit.no = ID)
+
+
+dat <- scdata(df = city.data,
+              id.var = "City",
+              time.var = "year",
+              outcome.var = "nobs45km_mammals",
+              period.pre = (2015:2021),
+              period.post = (2022:2023),
+              unit.tr = "Philadelphia",
+              unit.co = donor.cities,
+              features = feature.vars,
+              cov.adj = list('Temp' = c(),
+                             'Prec' = c(),
+                             'imperv45km' = c(),
+                             'Population' = c("constant","trend"),
+                             'nobs45km_mammals' = c("constant","trend"),
+                             'tcc45km' = c(),
+                             'area_km2' = c()))
+summary(dat)
+
+est.si  <- scest(data = dat)
+summary(est.si)
+
+#Estimating uncertainty
+sims <- 1000
+u.order <- 1
+u.lags <- 0
+u.sigma <- "HC1"
+u.missp <- TRUE
+e.order <- 1
+e.lags <- 0
+e.method <- "gaussian"
+lgapp <- "linear"
+cores <- 1
+set.seed(0)
+res.pi <- scpi(data = dat, sims = sims, e.method = e.method, e.order = e.order, e.lags = e.lags, u.order = u.order, u.lags = u.lags, u.sigma = u.sigma, u.missp = u.missp, cores = cores, w.constr = list(name = "simplex"))
+summary(res.pi)
+
+scplot(res.pi, e.out = TRUE)
+
+nobs45km_mammals <- as.numeric(c(res.pi$data$Y.pre[,1],
+                                   res.pi$data$Y.post[,1],
+                                   res.pi$est.results$Y.pre.fit[,1],
+                                   res.pi$est.results$Y.post.fit[,1]))
+year <- rep(2015:2023,2)
+Treatment <- c(rep("Philadelphia",9), rep("Synthetic Control",9))
+
+scpi.data <- tibble(nobs45km_mammals,year,Treatment)
+```
 
