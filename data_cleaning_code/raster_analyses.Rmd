@@ -102,9 +102,8 @@ plot(city_coords$geometry)
 
 
 # Save dataframe with summarized raster variables
-#```{r}
+```{r}
 #Save processed data files in output folder
-#testing data with tcc
 setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo/data_cleaning_code")
 write.csv(cities.test, "raw_data/cities.test.csv", row.names = FALSE)
 ```
