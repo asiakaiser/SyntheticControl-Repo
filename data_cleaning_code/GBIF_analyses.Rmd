@@ -15,17 +15,16 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Load Packages
-#```{r}
+```{r}
 library(sf)
 library(tidyverse)
 library(iNEXT)
 ```
 
 # Load in Data
-#```{r}
+```{r}
 rm(list = ls())
 setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo/data_cleaning_code")
-
 #test dataset
 cities.test <- read.csv("raw_data/cities.test.csv")
 
@@ -38,7 +37,7 @@ gbif.all <- read.csv("raw_data/Gbif_All.csv", header=T, na.strings=c("","NA"))
 ## Removing non-target taxa
 * Filtering data to just keep bees
 * Inputting *genus spp* in all blank cells in the species column
-#```{r}
+```{r}
 gbif <- gbif.all %>% 
   filter(gbif.all$family== c("Halictidae","Apidae","Colletidae","Melittidae","Megachilidae","Adrenidae"))%>%
   mutate(species = ifelse(is.na(species), paste0(genus, " spp"), species))
@@ -47,14 +46,14 @@ gbif <- gbif.all %>%
 Code for creating smaller testing dataset
 #```{r}
 gbif.sub <- gbif[sample(nrow(gbif), 10000), ]
-```
+#```
 
 ## Assigning observations to cities
 * Convert gbif data to an sf object
 * Create buffer distances
 * Create group column for "Outside City" which all observations not in a buffer will automatically be categorized to.
 
-#```{r}
+```{r}
 sf_data <- st_as_sf(gbif, coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
 
 buffer45_distance <- 45000 #buffer distance
@@ -63,7 +62,7 @@ sf_data$City45km <- "Outside City"
 ```
 
 * For loop to assign all observations to a city
-#```{r}
+```{r}
 for (i in 1:nrow(cities.test)) {
   specific_point <- st_sfc(st_point(c(cities.test$Long[i], cities.test$Lat[i])), crs = 4326)
   buffer45 <- st_buffer(specific_point, dist = buffer45_distance)
@@ -79,7 +78,7 @@ unique(gbif$City45km)
 ##Group Summaries
 
 ### Abundance values
-#```{r}
+```{r}
 # Aggregating data by year and city
 gbif.obs.45km <- gbif %>%
   group_by(City45km, year) %>%
@@ -98,7 +97,7 @@ cities.test <- cities.test %>%
   mutate(n.obs45km = replace_na(n.obs45km, 0))
 
 # View the transformed and merged data frame
-head(cities.test)
+summary(cities.test)
 ```
 
 ### Extracting Biodiversity Values
@@ -140,12 +139,12 @@ cities.test <- cities.test %>%
 
 # View the updated cities.test data frame
 head(cities.test)
-```
+#```
 
 #Further narrowing donor pool
 * Filter out cities experiencing treatment or facing abnormal shock
 * Subsetting to cities with close number of observations
-#```{r}
+```{r}
 #Subset for cities with closer number of observations during treatment year
 cities.pool <- cities.test %>%
   filter(year == 2021) %>%
@@ -162,7 +161,7 @@ cities.test <- cities.test %>%
 ```
 
 # Save dataframe with summarized GBIF variables
-#```{r}
+```{r}
 #Save processed data files in output folder
 setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo")
 write.csv(cities.test, "data/cities.scm.input.csv", row.names = FALSE)
