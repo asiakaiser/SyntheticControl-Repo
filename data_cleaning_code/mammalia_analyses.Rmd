@@ -1,0 +1,82 @@
+---
+title: "Alternate Taxa Analysis"
+output: html_document
+date: "2025-09-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Load Packages
+```{r}
+library(sf)
+library(tidyverse)
+library(iNEXT)
+```
+
+
+# Read in the Data
+```{r}
+rm(list = ls())
+setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo")
+#cities dataset
+cities.data <- read.csv("data/cities.scm.input.csv")
+
+#GBIF data
+gbif.all.mam <- read.csv("data_cleaning_code/raw_data/0008839-250914085247600.csv", header=T, na.strings=c("","NA"))
+```
+
+Code for creating smaller testing dataset
+#```{r}
+gbif.sub.mam <- gbif.all.mam[sample(nrow(gbif), 10000), ]
+#```
+
+## Assigning observations to cities
+* Convert gbif data to an sf object
+* Create buffer distances
+* Create group column for "Outside City" which all observations not in a buffer will automatically be categorized to.
+
+```{r}
+sf_data <- st_as_sf(gbif.sub.mam, coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
+
+buffer45_distance <- 45000 #buffer distance
+
+sf_data$City45km <- "Outside City"
+```
+
+* For loop to assign all observations to a city
+```{r}
+for (i in 1:nrow(cities.test)) {
+  specific_point <- st_sfc(st_point(c(cities.data$Long[i], cities.data$Lat[i])), crs = 4326)
+  buffer45 <- st_buffer(specific_point, dist = buffer45_distance)
+  in_buffer45 <- st_within(sf_data, buffer45, sparse = FALSE)
+  sf_data$City45km[in_buffer45] <- cities.data$City[i]
+}
+
+#Turn sf file back into a dataframe
+gbif <- as.data.frame(sf_data)
+unique(gbif$City45km)
+```
+
+##Group Summaries
+
+### Abundance values
+```{r}
+# Aggregating data by year and city
+gbif.obs.45km <- gbif %>%
+  group_by(City45km, year) %>%
+  summarise(n.obs45km_mammals = n(), .groups = 'drop')
+
+# Transforming the cities data and merging with aggregated data
+cities.data <- cities.data %>%
+  mutate(year = as.numeric(year)) %>%
+  left_join(gbif.obs.45km, by = c("City" = "City45km", "year")) %>%
+  mutate(n.obs45km_mammals = replace_na(n.obs45km_mammals, 0))
+
+# View the transformed and merged data frame
+summary(cities.data)
+```
+
+
