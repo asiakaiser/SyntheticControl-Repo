@@ -153,3 +153,178 @@ Treatment <- c(rep("Philadelphia",9), rep("Synthetic Control",9))
 scpi.data <- tibble(nobs45km_mammals,year,Treatment)
 ```
 
+# Load in Data
+```{r}
+setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo")
+rm(list = ls())
+city.data <- read.csv("data/cities.scm.input.csv")
+```
+
+# Synthetic Control Analysis in scpi Package
+```{r}
+#write.csv(city.data, "city_dat.csv", row.names = FALSE)
+city.data <- city.data %>%
+    rename("nobs45km" = "n.obs45km")
+
+# try in scpi
+library(scpi)
+library(data.table)
+
+donor.cities <- unique(city.data$City)
+donor.cities <- donor.cities[!(donor.cities == "Philadelphia")]
+city.data$Temp <-scale(city.data$Temp)
+city.data$Prec <- scale(city.data$Prec)
+city.data$imperv45km <- scale(city.data$imperv45km)
+city.data$Population <- scale(city.data$Population)
+city.data$tcc45km <- scale(city.data$tcc45km)
+city.data$area_km2 <- scale(city.data$area_km2)
+city.data$Median_HH_Income <- scale(city.data$Median_HH_Income)
+city.data$BA_Population <- scale(city.data$BA_Population)
+
+feature.vars <- c("Temp","Prec","imperv45km","Population","non_megachilidae","tcc45km","area_km2","Median_HH_Income","BA_Population")
+city.data <- city.data %>%
+  rename(unit.no = ID)
+
+
+dat <- scdata(df = city.data,
+              id.var = "City",
+              time.var = "year",
+              outcome.var = "non_megachilidae",
+              period.pre = (2015:2021),
+              period.post = (2022:2023),
+              unit.tr = "Philadelphia",
+              unit.co = donor.cities,
+              features = feature.vars,
+              cov.adj = list('Temp' = c(),
+                             'Prec' = c(),
+                             'imperv45km' = c(),
+                             'Population' = c("constant","trend"),
+                             'non_megachilidae' = c("constant","trend"),
+                             'tcc45km' = c(),
+                             'area_km2' = c(),
+                             'Median_HH_Income' = c(),
+                             'BA_Population' = c()))
+summary(dat)
+
+est.si  <- scest(data = dat)
+summary(est.si)
+
+#Estimating uncertainty
+sims <- 1000
+u.order <- 1
+u.lags <- 0
+u.sigma <- "HC1"
+u.missp <- TRUE
+e.order <- 1
+e.lags <- 0
+e.method <- "gaussian"
+lgapp <- "linear"
+cores <- 1
+set.seed(0)
+res.pi <- scpi(data = dat, sims = sims, e.method = e.method, e.order = e.order, e.lags = e.lags, u.order = u.order, u.lags = u.lags, u.sigma = u.sigma, u.missp = u.missp, cores = cores, w.constr = list(name = "simplex"))
+?scpi
+summary(res.pi)
+
+scplot(res.pi, e.out = TRUE)
+
+nobs45km <- as.numeric(c(res.pi$data$Y.pre[,1],
+                                   res.pi$data$Y.post[,1],
+                                   res.pi$est.results$Y.pre.fit[,1],
+                                   res.pi$est.results$Y.post.fit[,1]))
+year <- rep(2015:2023,2)
+Treatment <- c(rep("Philadelphia",9), rep("Synthetic Control",9))
+
+scpi.data <- tibble(nobs45km,year,Treatment)
+
+(decline.2023 <- ((329.979- 299)/329.979)*100)
+(decline.2022 <- ((283.317-238)/283.317)*100) 
+```
+
+# Load in Data
+```{r}
+setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo")
+rm(list = ls())
+city.data <- read.csv("data/cities.scm.input.csv")
+```
+
+# Synthetic Control Analysis in scpi Package
+```{r}
+#write.csv(city.data, "city_dat.csv", row.names = FALSE)
+city.data <- city.data %>%
+    rename("nobs45km" = "n.obs45km")
+
+# try in scpi
+library(scpi)
+library(data.table)
+
+donor.cities <- unique(city.data$City)
+donor.cities <- donor.cities[!(donor.cities == "Philadelphia")]
+city.data$Temp <-scale(city.data$Temp)
+city.data$Prec <- scale(city.data$Prec)
+city.data$imperv45km <- scale(city.data$imperv45km)
+city.data$Population <- scale(city.data$Population)
+city.data$tcc45km <- scale(city.data$tcc45km)
+city.data$area_km2 <- scale(city.data$area_km2)
+city.data$Median_HH_Income <- scale(city.data$Median_HH_Income)
+city.data$BA_Population <- scale(city.data$BA_Population)
+
+feature.vars <- c("Temp","Prec","imperv45km","Population","megachilidae","tcc45km","area_km2","Median_HH_Income","BA_Population")
+city.data <- city.data %>%
+  rename(unit.no = ID)
+
+
+dat <- scdata(df = city.data,
+              id.var = "City",
+              time.var = "year",
+              outcome.var = "megachilidae",
+              period.pre = (2015:2021),
+              period.post = (2022:2023),
+              unit.tr = "Philadelphia",
+              unit.co = donor.cities,
+              features = feature.vars,
+              cov.adj = list('Temp' = c(),
+                             'Prec' = c(),
+                             'imperv45km' = c(),
+                             'Population' = c("constant","trend"),
+                             'megachilidae' = c("constant","trend"),
+                             'tcc45km' = c(),
+                             'area_km2' = c(),
+                             'Median_HH_Income' = c(),
+                             'BA_Population' = c()))
+summary(dat)
+
+est.si  <- scest(data = dat)
+summary(est.si)
+
+#Estimating uncertainty
+sims <- 1000
+u.order <- 1
+u.lags <- 0
+u.sigma <- "HC1"
+u.missp <- TRUE
+e.order <- 1
+e.lags <- 0
+e.method <- "gaussian"
+lgapp <- "linear"
+cores <- 1
+set.seed(0)
+res.pi <- scpi(data = dat, sims = sims, e.method = e.method, e.order = e.order, e.lags = e.lags, u.order = u.order, u.lags = u.lags, u.sigma = u.sigma, u.missp = u.missp, cores = cores, w.constr = list(name = "simplex"))
+?scpi
+summary(res.pi)
+
+scplot(res.pi, e.out = TRUE)
+
+nobs45km <- as.numeric(c(res.pi$data$Y.pre[,1],
+                                   res.pi$data$Y.post[,1],
+                                   res.pi$est.results$Y.pre.fit[,1],
+                                   res.pi$est.results$Y.post.fit[,1]))
+year <- rep(2015:2023,2)
+Treatment <- c(rep("Philadelphia",9), rep("Synthetic Control",9))
+
+scpi.data <- tibble(nobs45km,year,Treatment)
+
+(decline.2023 <- ((329.979- 299)/329.979)*100)
+(decline.2022 <- ((283.317-238)/283.317)*100) 
+```
+
+
