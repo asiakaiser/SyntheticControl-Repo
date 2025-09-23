@@ -79,6 +79,45 @@ unique(gbif$City45km)
 
 ### Abundance values
 ```{r}
+# Abundance for Megachilidae
+gbif.obs.meg <- gbif %>%
+  filter(family == "Megachilidae") %>%
+  group_by(City45km, year) %>%
+  summarise(megachilidae = n(), .groups = 'drop')
+
+# Abundance for all bees EXCEPT Megachilidae
+gbif.obs.nonmeg <- gbif %>%
+  filter(family != "Megachilidae") %>%
+  group_by(City45km, year) %>%
+  summarise(non_megachilidae = n(), .groups = 'drop')
+
+# Merge into cities.test and calculate totals + proportions
+cities.test <- cities.test %>%
+  pivot_longer(
+    cols = starts_with("X"),
+    names_to = "year",
+    names_prefix = "X",
+    values_to = "Population"
+  ) %>%
+  mutate(year = as.numeric(year)) %>%
+  left_join(gbif.obs.meg, by = c("City" = "City45km", "year")) %>%
+  left_join(gbif.obs.nonmeg, by = c("City" = "City45km", "year")) %>%
+  mutate(
+    megachilidae = replace_na(megachilidae, 0),
+    non_megachilidae = replace_na(non_megachilidae, 0),
+    n.obs45km = megachilidae + non_megachilidae,   # keep original naming
+    prop_megachilidae = if_else(
+      n.obs45km > 0,
+      megachilidae / n.obs45km,
+      NA_real_
+    )
+  )
+
+# Quick check
+summary(cities.test)
+```
+
+#```{r}
 # Aggregating data by year and city
 gbif.obs.45km <- gbif %>%
   group_by(City45km, year) %>%
@@ -98,7 +137,7 @@ cities.test <- cities.test %>%
 
 # View the transformed and merged data frame
 summary(cities.test)
-```
+#```
 
 ### Extracting Biodiversity Values
 
