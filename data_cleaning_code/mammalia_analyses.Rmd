@@ -327,4 +327,56 @@ scpi.data <- tibble(nobs45km,year,Treatment)
 (decline.2022 <- ((283.317-238)/283.317)*100) 
 ```
 
+```{r}
+setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo")
+rm(list = ls())
+city.data <- read.csv("data/cities.scm.input.csv")
+```
+
+
+Tidysynth 
+```{r}
+# Create synthetic control object
+gbifcity_out <- city.data %>%
+  # Initial synthetic control object
+  synthetic_control(outcome = megachilidae, # outcome
+                    unit = City, # unit index in the panel data
+                    time = year, # time index in the panel data
+                    i_unit = "Philadelphia", # unit where the intervention occurred
+                    i_time = 2021, # time period when the intervention occurred
+                    generate_placebos = TRUE # generate placebo synthetic controls (for inference)
+  ) %>%
+  
+  #Generate aggregate predictors to fit weights to each unit
+  generate_predictor(time_window = 2015:2023,
+                     Population = mean(Population, rm.na= TRUE),
+                     ) %>%
+
+  generate_predictor(time_window = 2021,
+                     "Temperature" = Temp,
+                     "Precipitation" = Prec,
+                     "Tree canopy cover" = tcc45km,
+                     "Impervious surface" = imperv45km,
+                     "Area (km2)" = area_km2,
+                     "Median Household Income" = Median_HH_Income,
+                     "BA Population" = BA_Population) %>%
+
+  # Generate the fitted weights for the synthetic control
+  generate_weights(optimization_window = 2015:2021, # time to use in the optimization task
+                   margin_ipop = .02,sigf_ipop = 7,bound_ipop = 6 # optimizer options
+  ) %>%
+  
+  # Generate the synthetic control 
+  generate_control()
+```
+
+```{r}
+gbifcity_out %>% grab_significance()
+
+gbifcity_out %>% grab_synthetic_control()%>%
+  filter(time_unit == 2022)%>%
+  mutate(causal_estimate= synth_y - real_y)%>%
+  mutate(percent_estimate= (causal_estimate/synth_y)*100)%>%
+  head
+```
 

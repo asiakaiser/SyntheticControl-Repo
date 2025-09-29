@@ -79,19 +79,19 @@ unique(gbif$City45km)
 
 ### Abundance values
 ```{r}
-# Abundance for Megachilidae
-gbif.obs.meg <- gbif %>%
-  filter(family == "Megachilidae") %>%
-  group_by(City45km, year) %>%
-  summarise(megachilidae = n(), .groups = 'drop')
+## Group Summaries
 
-# Abundance for all bees EXCEPT Megachilidae
-gbif.obs.nonmeg <- gbif %>%
-  filter(family != "Megachilidae") %>%
+# Abundance for all bees (all families)
+gbif.obs.all <- gbif %>%
   group_by(City45km, year) %>%
-  summarise(non_megachilidae = n(), .groups = 'drop')
+  summarise(n.obs45km = n(), .groups = "drop")
 
-# Merge into cities.test and calculate totals + proportions
+# Number of unique observers (all bee families)
+gbif.obs.observers <- gbif %>%
+  group_by(City45km, year) %>%
+  summarise(unique_observers = n_distinct(identifiedBy), .groups = "drop")
+
+# Merge into cities.test
 cities.test <- cities.test %>%
   pivot_longer(
     cols = starts_with("X"),
@@ -100,17 +100,11 @@ cities.test <- cities.test %>%
     values_to = "Population"
   ) %>%
   mutate(year = as.numeric(year)) %>%
-  left_join(gbif.obs.meg, by = c("City" = "City45km", "year")) %>%
-  left_join(gbif.obs.nonmeg, by = c("City" = "City45km", "year")) %>%
+  left_join(gbif.obs.all, by = c("City" = "City45km", "year")) %>%
+  left_join(gbif.obs.observers, by = c("City" = "City45km", "year")) %>%
   mutate(
-    megachilidae = replace_na(megachilidae, 0),
-    non_megachilidae = replace_na(non_megachilidae, 0),
-    n.obs45km = megachilidae + non_megachilidae,   # keep original naming
-    prop_megachilidae = if_else(
-      n.obs45km > 0,
-      megachilidae / n.obs45km,
-      NA_real_
-    )
+    n.obs45km = replace_na(n.obs45km, 0),
+    unique_observers = replace_na(unique_observers, 0)
   )
 
 # Quick check

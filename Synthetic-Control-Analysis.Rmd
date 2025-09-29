@@ -48,8 +48,9 @@ city.data$tcc45km <- scale(city.data$tcc45km)
 city.data$area_km2 <- scale(city.data$area_km2)
 city.data$Median_HH_Income <- scale(city.data$Median_HH_Income)
 city.data$BA_Population <- scale(city.data$BA_Population)
+city.data$unique_observers <- scale(city.data$unique_observers)
 
-feature.vars <- c("Temp","Prec","imperv45km","Population","nobs45km","tcc45km","area_km2","Median_HH_Income","BA_Population")
+feature.vars <- c("Temp","Prec","imperv45km","Population","nobs45km","tcc45km","area_km2","Median_HH_Income","BA_Population","unique_observers")
 city.data <- city.data %>%
   rename(unit.no = ID)
 
@@ -68,6 +69,7 @@ dat <- scdata(df = city.data,
                              'imperv45km' = c(),
                              'Population' = c("constant","trend"),
                              'nobs45km' = c("constant","trend"),
+                             'unique_observers' = c("constant","trend"),
                              'tcc45km' = c(),
                              'area_km2' = c(),
                              'Median_HH_Income' = c(),
