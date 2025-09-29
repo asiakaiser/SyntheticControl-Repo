@@ -50,7 +50,7 @@ city.data$Median_HH_Income <- scale(city.data$Median_HH_Income)
 city.data$BA_Population <- scale(city.data$BA_Population)
 city.data$unique_observers <- scale(city.data$unique_observers)
 
-feature.vars <- c("Temp","Prec","imperv45km","Population","nobs45km","tcc45km","area_km2","Median_HH_Income","BA_Population","unique_observers")
+feature.vars <- c("Temp","Prec","imperv45km","Population","nobs45km","tcc45km","area_km2","Median_HH_Income","unique_observers")
 city.data <- city.data %>%
   rename(unit.no = ID)
 
@@ -72,8 +72,7 @@ dat <- scdata(df = city.data,
                              'unique_observers' = c("constant","trend"),
                              'tcc45km' = c(),
                              'area_km2' = c(),
-                             'Median_HH_Income' = c(),
-                             'BA_Population' = c()))
+                             'Median_HH_Income' = c()))
 summary(dat)
 
 est.si  <- scest(data = dat)
@@ -106,8 +105,8 @@ Treatment <- c(rep("Philadelphia",9), rep("Synthetic Control",9))
 
 scpi.data <- tibble(nobs45km,year,Treatment)
 
-(decline.2023 <- ((329.979- 299)/329.979)*100)
-(decline.2022 <- ((283.317-238)/283.317)*100) 
+(decline.2023 <- ((349.839- 299)/349.839)*100)
+(decline.2022 <- ((298.470-238)/298.470)*100) 
 ```
 
 GGplot of Scpi estimates
@@ -127,10 +126,10 @@ Asia_Theme <- theme(
 scpi.plot <- ggplot(scpi.data, aes(x = year, y = nobs45km, color = Treatment)) +
     geom_line(linewidth = 1, aes(linetype = Treatment))+
   geom_point()+
-    geom_point(aes(x = 2022, y = 283.317, color = "#c443b2", group = 1))+
-        geom_errorbar(aes(x = 2022, ymin = 268.804, ymax = 328.980, color = "#c443b2"), width = 0.25)+
-    geom_point(aes(x = 2023, y = 329.979, color = "#c443b2", group = 1))+
-    geom_errorbar(aes(x = 2023, ymin = 321.669, ymax = 376.095, color = "#c443b2"), width = 0.25)+
+    geom_point(aes(x = 2022, y = 298.470, color = "#c443b2", group = 1))+
+        geom_errorbar(aes(x = 2022, ymin = 297.368, ymax = 332.898, color = "#c443b2"), width = 0.25)+
+    geom_point(aes(x = 2023, y = 349.839, color = "#c443b2", group = 1))+
+    geom_errorbar(aes(x = 2023, ymin = 348.081, ymax = 383.700, color = "#c443b2"), width = 0.25)+
   scale_linetype_manual(values=c(1,4,1))+
   scale_color_manual(values=c("#c443b2","darkgrey","#c443b2"))+
   geom_vline(xintercept = 2021, linetype="dashed")+
@@ -175,6 +174,7 @@ gbifcity_out <- city.data %>%
   #Generate aggregate predictors to fit weights to each unit
   generate_predictor(time_window = 2015:2023,
                      Population = mean(Population, rm.na= TRUE),
+                     "Unique Observers" = mean(unique_observers, rm.na = TRUE)
                      ) %>%
 
   generate_predictor(time_window = 2021,
@@ -182,7 +182,8 @@ gbifcity_out <- city.data %>%
                      "Precipitation" = Prec,
                      "Tree canopy cover" = tcc45km,                     ,
                      "Impervious surface" = imperv45km,
-                     "Area (km2)" = area_km2
+                     "Area (km2)" = area_km2,
+                     "Median HH Income" = Median_HH_Income
                      ) %>%
 
   # Generate the fitted weights for the synthetic control
@@ -277,12 +278,12 @@ gbifcity_out %>% grab_synthetic_control()%>%
 ```{r}
 #Create relevant dummy variables
 city.data.ba <- city.data %>%
-    filter(City == "Philadelphia")%>%
+    filter(City == "Philadelphia" & year > 2018)%>%
     mutate(Treatment = ifelse(year > 2021,1,0))
 
 #ba.model <- feols(nobs45km ~ Treatment, data = city.data.ba, cluster = ~City)
 
-ba.model <- lm(nobs45km ~ Treatment, data = city.data.ba)
+ba.model <- lm(n.obs45km ~ Treatment, data = city.data.ba)
 summary(ba.model)
 
 confint.ba <- confint(ba.model)
@@ -292,14 +293,14 @@ confint.ba
 
 *BA plot with most similar city*
 ```{r, warning = FALSE}
-ba.plot <- ggplot(city.data.ba, aes(x = year, y = nobs45km)) +
+ba.plot <- ggplot(city.data.ba, aes(x = year, y = n.obs45km)) +
     geom_line(linewidth = 1, color = "darkgrey")+
   geom_point(color = "darkgrey")+
-    geom_point(aes(x = 2018, y = ba.model$coefficients[1], color = "#8B0000", group = 1))+
-        geom_errorbar(aes(x = 2018, ymin = 0, ymax = confint.ba[3], color = "#8B0000"), width = 0.25)+
+    geom_point(aes(x = 2020, y = ba.model$coefficients[1], color = "#8B0000", group = 1))+
+        geom_errorbar(aes(x = 2020, ymin = 0, ymax = confint.ba[3], color = "#8B0000"), width = 0.25)+
     geom_point(aes(x = 2022, y = ( ba.model$coefficients[1] + ba.model$coefficients[2]), color = "#8B0000", group = 1))+
     geom_errorbar(aes(x = 2022, ymin = ( ba.model$coefficients[1] + confint.ba[2]), ymax = ( ba.model$coefficients[1] + confint.ba[4]), color = "#8B0000"), width = 0.25)+
-    geom_segment(aes(x = 2018, y = ba.model$coefficients[1], xend = 2022, yend =  ( ba.model$coefficients[1] + ba.model$coefficients[2]), colour = "#8B0000"))+
+    geom_segment(aes(x = 2020, y = ba.model$coefficients[1], xend = 2022, yend =  ( ba.model$coefficients[1] + ba.model$coefficients[2]), colour = "#8B0000"))+
   geom_vline(xintercept = 2021, linetype="dashed")+
   labs(title = "Before-After (BA)",
        x = "Year",
@@ -307,7 +308,7 @@ ba.plot <- ggplot(city.data.ba, aes(x = year, y = nobs45km)) +
   theme_minimal()+
   theme(legend.position = "none")+
   Asia_Theme+
-    ylim(0,425)+
+    ylim(0,450)+
     xlim(2015,2023)
 ba.plot
 ```
@@ -323,7 +324,7 @@ city.data.baci <- city.data %>%
 
 #Running the Before- After Control Impact model
 #baci.model <- feols(nobs45km ~ Treated * Time, data = city.data.baci, cluster = ~City)
-baci.model <- lm(nobs45km ~ Treated * Time, data = city.data.baci)
+baci.model <- lm(n.obs45km ~ Treated * Time, data = city.data.baci)
 
 summary(baci.model)
 confint.baci <- confint(baci.model)
@@ -335,7 +336,7 @@ confint.baci
 ```{r, warning=FALSE}
 palette.colors(palette = "Okabe-Ito")
 
-baci.plot <- ggplot(city.data.baci, aes(x = year, y = nobs45km, color = City)) +
+baci.plot <- ggplot(city.data.baci, aes(x = year, y = n.obs45km, color = City)) +
     geom_line(linewidth = 1, aes(linetype = City))+
   geom_point()+
   scale_linetype_manual(values=c(3,1))+
@@ -363,7 +364,7 @@ city.data.baci.2 <- city.data %>%
 
 #Running the Before- After Control Impact model
 #baci.model <- feols(nobs45km ~ Treated * Time, data = city.data.baci, cluster = ~City)
-baci.model.2 <- lm(nobs45km ~ Treated * Time, data = city.data.baci.2)
+baci.model.2 <- lm(n.obs45km ~ Treated * Time, data = city.data.baci.2)
 
 summary(baci.model.2)
 confint.baci.2 <- confint(baci.model.2)
@@ -375,7 +376,7 @@ confint.baci.2
 ```{r, warning=FALSE}
 palette.colors(palette = "Okabe-Ito")
 
-baci.plot.2 <- ggplot(city.data.baci.2, aes(x = year, y = nobs45km, color = City)) +
+baci.plot.2 <- ggplot(city.data.baci.2, aes(x = year, y = n.obs45km, color = City)) +
     geom_line(linewidth = 1, aes(linetype = City))+
   geom_point()+
   scale_linetype_manual(values=c(3,1))+
@@ -406,7 +407,7 @@ city.data.its <- city.data %>%
 city.data.its
 
 #Running the its regression
-its.model <- gls(nobs45km ~ year + Treated + Time_since, data = city.data.its, correlation= corARMA(p=1, q=1, form = ~ year), method = "ML")
+its.model <- gls(n.obs45km ~ year + Treated + Time_since, data = city.data.its, correlation= corARMA(p=1, q=1, form = ~ year), method = "ML")
 summary(its.model)
 
 #confidence intervals for the its regression
@@ -418,7 +419,7 @@ ITS Plot - making predictions
 ```{r}
 #Creating model for counterfactual
 city.data.its.2 <-filter(city.data.its, year <= 2021)
-its.counter = gls(nobs45km ~ year, data = city.data.its.2, correlation= corARMA(p=1, q=1, form = ~ year),method="ML")
+its.counter = gls(n.obs45km ~ year, data = city.data.its.2, correlation= corARMA(p=1, q=1, form = ~ year),method="ML")
 
 #Adding prediction intervals for counterfactual back to dataframe
 city.data.its <-city.data.its %>% mutate(
@@ -430,7 +431,7 @@ city.data.its <-city.data.its %>% mutate(
 Plot
 ```{r}
 its.plot <- ggplot(city.data.its,
-         aes(x = year, y = nobs45km))+
+         aes(x = year, y = n.obs45km))+
   geom_ribbon(aes(ymin = counter.predictions - (1.96*counter.se), ymax = counter.predictions + (1.96*counter.se)), fill = 'turquoise', alpha = .2, linetype = 2)+
   geom_line(aes(year,counter.predictions),color='turquoise', lty = 4)+
   geom_point(color = 'darkgrey')+
@@ -473,12 +474,12 @@ ci.plot <- ggplot(ci.data,
 ci.plot
 ```
 
-CI plot - synthetic control method
+CI plot - synthetic control method (2023 estimate)
 ```{r}
 method <- "   SC"
-estimate <- (299 - 329.979) 
-lwrCI <- (299 - 376.095)
-uprCI <- (299 - 321.669)
+estimate <- (299 - 349.839) 
+lwrCI <- (299 - 383.7)
+uprCI <- (299 - 348.081)
 scm.ci.data <- tibble(method,estimate,lwrCI,uprCI)
 
 scm.ci.plot <- ggplot(scm.ci.data,
