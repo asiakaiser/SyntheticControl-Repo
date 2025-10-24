@@ -19,6 +19,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(sf)
 library(tidyverse)
 library(iNEXT)
+library(data.table)
+library(arrow)
+library(units)
 ```
 
 # Load in Data
@@ -28,8 +31,18 @@ setwd("/Users/aska1693/Downloads/Chapter2_SyntheticControl/SyntheticControl-Repo
 #test dataset
 cities.test <- read.csv("raw_data/cities.test.csv")
 
-#GBIF data
+#GBIF Hymenoptera data
 gbif.all <- read.csv("raw_data/Gbif_All.csv", header=T, na.strings=c("","NA"))
+
+#GBIF All taxa data
+setDTthreads(parallel::detectCores())
+gbif.all.taxa <- fread("raw_data/0001517-251009101135966_GBIF_ALL.csv", 
+            header=T, na.strings=c("","NA"),
+            showProgress = TRUE,
+            select = c("decimalLatitude","decimalLongitude","recordedBy","year")) #fast read
+head(gbif.all.taxa)
+#write_parquet(gbif.all.taxa, "GBIF_all_taxa.parquet") #converting to Parquet for future use
+#gbif.all.taxa <- read.csv("raw_data/0001517-251009101135966_GBIF_ALL.csv", header=T, na.strings=c("","NA"))
 ```
 
 # Data Cleaning
@@ -49,29 +62,36 @@ gbif.sub <- gbif[sample(nrow(gbif), 10000), ]
 #```
 
 ## Assigning observations to cities
+
 * Convert gbif data to an sf object
 * Create buffer distances
-* Create group column for "Outside City" which all observations not in a buffer will automatically be categorized to.
-
 ```{r}
+#Convert gbif to sf points
 sf_data <- st_as_sf(gbif, coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
 
-buffer45_distance <- 45000 #buffer distance
+#Convert cities.test to sf points
+cities.sf <- st_as_sf(cities.test, coords = c("Long", "Lat"), crs = 4326)
 
-sf_data$City45km <- "Outside City"
+#Create 45 km buffers around all cities
+buffer45_distance <- set_units(45000, "m")  # 45 km in meters
+cities.buffer <- st_buffer(cities.sf, dist = buffer45_distance)
 ```
 
-* For loop to assign all observations to a city
-```{r}
-for (i in 1:nrow(cities.test)) {
-  specific_point <- st_sfc(st_point(c(cities.test$Long[i], cities.test$Lat[i])), crs = 4326)
-  buffer45 <- st_buffer(specific_point, dist = buffer45_distance)
-  in_buffer45 <- st_within(sf_data, buffer45, sparse = FALSE)
-  sf_data$City45km[in_buffer45] <- cities.test$City[i]
-}
 
-#Turn sf file back into a dataframe
+Assign all observations to a city
+```{r}
+# Perform spatial join: assign City to points within buffer
+sf_data <- st_join(sf_data, cities.buffer["City"], join = st_within)
+
+# Fill points outside any city buffer
+sf_data$City45km <- sf_data$City            # Copy joined column
+sf_data$City45km[is.na(sf_data$City45km)] <- "Outside City"  # Default value
+sf_data$City <- NULL  # Optional cleanup
+
+# Convert back to data frame if needed
 gbif <- as.data.frame(sf_data)
+
+# Check unique city assignments
 unique(gbif$City45km)
 ```
 
@@ -86,11 +106,6 @@ gbif.obs.all <- gbif %>%
   group_by(City45km, year) %>%
   summarise(n.obs45km = n(), .groups = "drop")
 
-# Number of unique observers (all bee families)
-gbif.obs.observers <- gbif %>%
-  group_by(City45km, year) %>%
-  summarise(unique_observers = n_distinct(identifiedBy), .groups = "drop")
-
 # Merge into cities.test
 cities.test <- cities.test %>%
   pivot_longer(
@@ -101,14 +116,80 @@ cities.test <- cities.test %>%
   ) %>%
   mutate(year = as.numeric(year)) %>%
   left_join(gbif.obs.all, by = c("City" = "City45km", "year")) %>%
-  left_join(gbif.obs.observers, by = c("City" = "City45km", "year")) %>%
-  mutate(
-    n.obs45km = replace_na(n.obs45km, 0),
-    unique_observers = replace_na(unique_observers, 0)
+  mutate(n.obs45km = replace_na(n.obs45km, 0)
   )
 
 # Quick check
 summary(cities.test)
+```
+
+## Getting No of Unique Observors for Dataset with all taxa
+
+* Convert gbif data to an sf object
+```{r}
+#Convert gbif to sf points
+sf_data <- st_as_sf(gbif.all.taxa, coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
+```
+
+Assign all observations to a city
+```{r}
+# Set Chunk parameters
+chunk_size <- 500000   # 0.5M rows per chunk to fit in RAM
+n_chunks <- ceiling(nrow(gbif.all.taxa) / chunk_size)
+
+# Process chunks
+for (i in 1:n_chunks) {
+  cat("Processing chunk", i, "of", n_chunks, "\n")
+  
+  # Extract current chunk
+  start_row <- (i - 1) * chunk_size + 1
+  end_row <- min(i * chunk_size, nrow(gbif.all.taxa))
+  gbif_chunk <- gbif.all.taxa[start_row:end_row, ]
+  
+  # Convert chunk to sf
+  sf_chunk <- st_as_sf(gbif_chunk, coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
+  
+  # Vectorized spatial join
+  sf_chunk <- st_join(sf_chunk, cities.buffer["City"], join = st_within)
+  
+  # Assign City45km column
+  sf_chunk$City45km <- sf_chunk$City
+  sf_chunk$City45km[is.na(sf_chunk$City45km)] <- "Outside City"
+  sf_chunk$City <- NULL
+  
+  # Convert to data.frame and drop geometry before saving
+  sf_df <- as.data.frame(sf_chunk)
+  sf_df$geometry <- NULL
+  
+  # Save chunk to Parquet
+  chunk_file <- paste0("gbif_chunk_", i, ".parquet")
+  write_parquet(sf_df, chunk_file)
+  
+  # Free memory
+  rm(sf_chunk, gbif_chunk, sf_df)
+  gc()
+}
+
+# Combine all Parquet chunks
+file_list <- list.files(pattern = "gbif_chunk_.*\\.parquet$")
+gbif.all.taxa <- lapply(file_list, read_parquet) %>% bind_rows()
+
+# Check results
+unique(gbif.all.taxa$City45km)
+```
+
+*Group summaries*
+```{r}
+# Number of unique observers (all bee families)
+gbif.obs.observers <- gbif.all.taxa %>%
+  group_by(City45km, year) %>%
+  summarise(unique_observers = n_distinct(recordedBy), .groups = "drop")
+
+# Merge into cities.test
+cities.test <- cities.test %>%
+  left_join(gbif.obs.observers, by = c("City" = "City45km", "year")) %>%
+  mutate(unique_observers = replace_na(unique_observers, 0)
+  )
 ```
 
 #```{r}
@@ -204,7 +285,6 @@ socio.var <- socio.var %>%
 
 cities.test <- left_join(cities.test, socio.var, by = "City")
 ```
-
 
 # Save dataframe with summarized GBIF variables
 ```{r}

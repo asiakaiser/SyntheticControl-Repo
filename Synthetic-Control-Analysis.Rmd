@@ -112,7 +112,7 @@ scpi.data <- tibble(nobs45km,year,Treatment)
 GGplot of Scpi estimates
 
 Creating Personal Theme
-```{r}
+```{r, echo=FALSE}
 Asia_Theme <- theme(
   plot.title = element_text(size = 20),
   plot.caption = element_text(size = 16),
@@ -122,7 +122,7 @@ Asia_Theme <- theme(
   legend.text = element_text(size= 20))
 ```
 
-```{r}
+```{r, echo=FALSE}
 scpi.plot <- ggplot(scpi.data, aes(x = year, y = nobs45km, color = Treatment)) +
     geom_line(linewidth = 1, aes(linetype = Treatment))+
   geom_point()+
@@ -262,7 +262,10 @@ mpseratio
 ```{r}
 significance.tab <- gbifcity_out %>% grab_significance()
 significance.tab <- as.data.frame(significance.tab)
+significance.tab
+```
 
+```{r, include=FALSE}
 #This code provides the causal estimate value (difference in outcome between the synthetic control and the observed treated unit)
 gbifcity_out %>% grab_synthetic_control()%>%
   filter(time_unit == 2022)%>%
@@ -340,7 +343,7 @@ baci.plot <- ggplot(city.data.baci, aes(x = year, y = n.obs45km, color = City)) 
     geom_line(linewidth = 1, aes(linetype = City))+
   geom_point()+
   scale_linetype_manual(values=c(3,1))+
-  scale_color_manual(values=c('#D55E00','darkgrey'))+
+  scale_color_manual(values=c('#332288','darkgrey'))+
   geom_vline(xintercept = 2021, linetype="dashed")+
   labs(title = "Before-After Control Impact (BACI)",
        x = "Year",
@@ -502,7 +505,7 @@ trends.figure <- ggarrange(its.plot,baci.plot,ba.plot,ci.plot,scpi.plot,scm.ci.p
                     labels = c("A","B","C","D","E","F"), nrow = 3, ncol = 2)
 ggsave("figures/BACIplot_Cleveland.png", plot = baci.plot.2)
 ggsave("figures/Difference plot.png", plot = diffplot)
-ggsave("figures/Weight plot.png", plot = weightplot, height = 6, width = 12)
+ggsave("figures/Weight plot.png", plot = weightplot, height = 12, width = 13)
 ggsave("figures/Placebos plot.png", plot = placebos)
 ggsave("figures/MPSE ratio plot.png", plot = mpseratio)
 ggsave("figures/Method comparison plot.png", plot = trends.figure, height = 12, width = 11)
