@@ -105,7 +105,7 @@ Treatment <- c(rep("Philadelphia",9), rep("Synthetic Control",9))
 
 scpi.data <- tibble(nobs45km,year,Treatment)
 
-(decline.2023 <- ((353.102 - 353.102)/349.839)*100)
+(decline.2023 <- ((353.102 - 299)/349.839)*100)
 (decline.2022 <- ((300.959 -238)/300.959)*100) 
 ```
 
