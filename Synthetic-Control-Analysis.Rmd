@@ -291,7 +291,7 @@ gbifcity_out %>% grab_synthetic_control()%>%
 
 # Other Approaches
 
-## Before-After (BA) Analysis w/ closest city with similar population size (naive selection)
+## Before-After (BA) Analysis w/ only Philadelphia
 
 ```{r}
 #Create relevant dummy variables
@@ -432,6 +432,23 @@ summary(its.model)
 confint.its <- confint(its.model)
 ```
 
+ITS for number of observors
+```{r}
+#Creating the relevant dummy variables in dataframe
+city.data.its.2 <- city.data %>%
+  filter(City == "Philadelphia" & year >= 2015)%>%
+  mutate(Treated = if_else(year > 2021, 1, 0))%>%
+  mutate(Time_since= if_else(year <= 2021, 0, (year-2020)))
+city.data.its.2
+
+#Running the its regression
+its.model.2 <- gls(unique_observers ~ year + Treated + Time_since, data = city.data.its.2, correlation= corARMA(p=1, q=1, form = ~ year), method = "ML")
+summary(its.model.2)
+
+#confidence intervals for the its regression
+confint.its <- confint(its.model.2)
+```
+
 
 ITS Plot - making predictions
 ```{r}
@@ -484,7 +501,7 @@ ci.plot <- ggplot(ci.data,
     geom_errorbar(
         aes(xmin = lwrCI, xmax = uprCI), width = 0.25)+
     geom_point(size = 2.5)+
-    geom_vline(xintercept = 0, linetype = 2)+
+    geom_vline(xintercept = 0, linetype = 7)+
     xlim(-160,350)+
     theme_minimal()+
     Asia_Theme+
@@ -505,8 +522,8 @@ scm.ci.plot <- ggplot(scm.ci.data,
     geom_errorbar(
         aes(xmin = lwrCI, xmax = uprCI), width = 0.25)+
     geom_point(size = 2.5)+
-    geom_vline(xintercept = 0, linetype = 2)+
-    xlim(-160,350)+
+    geom_vline(xintercept = 0, linetype = 7)+
+    xlim(-130,350)+
     theme_minimal()+
     Asia_Theme+
     theme(axis.title.y = element_blank())
