@@ -311,23 +311,33 @@ confint.ba
 
 *BA plot with most similar city*
 ```{r, warning = FALSE}
+city.avg.ba <- city.data.ba %>%
+  mutate(period = ifelse(year > 2021, "post", "pre")) %>%
+  group_by(period) %>%
+  summarise(n.obs45km = mean(n.obs45km, na.rm = TRUE))
+
 ba.plot <- ggplot(city.data.ba, aes(x = year, y = n.obs45km)) +
-    geom_line(linewidth = 1, color = "darkgrey")+
+    geom_point(linewidth = 1, color = "darkgrey")+
   geom_point(color = "darkgrey")+
     geom_point(aes(x = 2020, y = ba.model$coefficients[1], color = "#8B0000", group = 1))+
         geom_errorbar(aes(x = 2020, ymin = 0, ymax = confint.ba[3], color = "#8B0000"), width = 0.25)+
     geom_point(aes(x = 2022, y = ( ba.model$coefficients[1] + ba.model$coefficients[2]), color = "#8B0000", group = 1))+
     geom_errorbar(aes(x = 2022, ymin = ( ba.model$coefficients[1] + confint.ba[2]), ymax = ( ba.model$coefficients[1] + confint.ba[4]), color = "#8B0000"), width = 0.25)+
-    geom_segment(aes(x = 2020, y = ba.model$coefficients[1], xend = 2022, yend =  ( ba.model$coefficients[1] + ba.model$coefficients[2]), colour = "#8B0000"))+
+    geom_segment(aes(x = 2019, xend = 2021, y = city.avg.ba$n.obs45km[city.avg.ba$period == "pre"], yend = city.avg.ba$n.obs45km[city.avg.ba$period == "pre"]),color = "darkgrey", size = 1, linetype="dashed")+
+        geom_segment(aes(x = 2021, xend = 2023, y = city.avg.ba$n.obs45km[city.avg.ba$period == "post"], yend = city.avg.ba$n.obs45km[city.avg.ba$period == "post"]),color = "darkgrey", size = 1, linetype="dashed")+
   geom_vline(xintercept = 2021, linetype="dashed")+
+    scale_x_continuous(
+      limits = c(2015, 2023),         # restrict x-axis range
+      breaks = c(2018, 2022.5),       # positions for labels (midpoints of pre/post)
+      labels = c("pre", "post")       # labels for those positions
+    ) +
   labs(title = "Before-After (BA)",
-       x = "Year",
+       x = "Period",
        y = "Bee observations") +
   theme_minimal()+
   theme(legend.position = "none")+
   Asia_Theme+
-    ylim(0,450)+
-    xlim(2015,2023)
+    ylim(0,450)
 ba.plot
 ```
 
@@ -352,11 +362,17 @@ confint.baci
 
 *BACI plot with most similar city*
 ```{r, warning=FALSE}
-palette.colors(palette = "Okabe-Ito")
 
 baci.plot <- ggplot(city.data.baci, aes(x = year, y = n.obs45km, color = City)) +
-    geom_line(linewidth = 1, aes(linetype = City))+
   geom_point()+
+    geom_smooth(data = subset(city.data.baci,Time == 0 & Treated == 1),
+                method = "lm", se = FALSE)+
+        geom_smooth(data = subset(city.data.baci,year >= 2021 & Treated == 1),
+                method = "lm", se = FALSE)+
+        geom_smooth(data = subset(city.data.baci,Time == 0 & Treated == 0),
+                method = "lm", se = FALSE)+
+        geom_smooth(data = subset(city.data.baci,year >= 2021 & Treated == 0),
+                method = "lm", se = FALSE)+
   scale_linetype_manual(values=c(3,1))+
   scale_color_manual(values=c('#332288','darkgrey'))+
   geom_vline(xintercept = 2021, linetype="dashed")+
@@ -368,7 +384,6 @@ baci.plot <- ggplot(city.data.baci, aes(x = year, y = n.obs45km, color = City)) 
   Asia_Theme+
     ylim(0,425)+
     xlim(2015,2023)
-
 baci.plot
 ```
 
@@ -395,8 +410,15 @@ confint.baci.2
 palette.colors(palette = "Okabe-Ito")
 
 baci.plot.2 <- ggplot(city.data.baci.2, aes(x = year, y = n.obs45km, color = City)) +
-    geom_line(linewidth = 1, aes(linetype = City))+
   geom_point()+
+        geom_smooth(data = subset(city.data.baci.2,Time == 0 & Treated == 1),
+                method = "lm", se = FALSE)+
+        geom_smooth(data = subset(city.data.baci.2,year >= 2021 & Treated == 1),
+                method = "lm", se = FALSE)+
+        geom_smooth(data = subset(city.data.baci.2,Time == 0 & Treated == 0),
+                method = "lm", se = FALSE)+
+        geom_smooth(data = subset(city.data.baci.2,year >= 2021 & Treated == 0),
+                method = "lm", se = FALSE)+
   scale_linetype_manual(values=c(3,1))+
   scale_color_manual(values=c('#D55E00','darkgrey'))+
   geom_vline(xintercept = 2021, linetype="dashed")+
@@ -446,7 +468,7 @@ its.model.2 <- gls(unique_observers ~ year + Treated + Time_since, data = city.d
 summary(its.model.2)
 
 #confidence intervals for the its regression
-confint.its <- confint(its.model.2)
+confint.its.2 <- confint(its.model.2)
 ```
 
 
@@ -470,6 +492,27 @@ its.plot <- ggplot(city.data.its,
   geom_ribbon(aes(ymin = counter.predictions - (1.96*counter.se), ymax = counter.predictions + (1.96*counter.se)), fill = 'turquoise', alpha = .2, linetype = 2)+
   geom_line(aes(year,counter.predictions),color='turquoise', lty = 4)+
   geom_point(color = 'darkgrey')+
+      scale_linetype_manual(values=1)+
+        geom_smooth(data = subset(city.data.its, year <= 2021),
+                method = "lm", se = FALSE, color = 'darkgrey')+
+        geom_smooth(data = subset(city.data.its,year >= 2021),
+                method = "lm", se = FALSE, color = 'darkgrey')+
+    geom_vline(xintercept = 2021, linetype="dashed")+
+    xlim(2015,2023)+
+    ylim(0,425)+
+      labs(title = "Interrupted Time Series (ITS)",
+       x = "Year",
+       y = "Bee observations")+
+    theme_minimal()+
+    Asia_Theme
+its.plot
+
+its.plot <- ggplot(city.data.its,
+         aes(x = year, y = n.obs45km))+
+  geom_ribbon(aes(ymin = counter.predictions - (1.96*counter.se), ymax = counter.predictions + (1.96*counter.se)), fill = 'turquoise', alpha = .2, linetype = 2)+
+  geom_line(aes(year,counter.predictions),color='turquoise', lty = 4)+
+    
+  geom_point(color = 'darkgrey')+
     geom_line(color = 'darkgrey', linewidth = 1)+
       scale_linetype_manual(values=1)+
     geom_vline(xintercept = 2021, linetype="dashed")+
@@ -488,16 +531,16 @@ Confidence interval plot for effect sizes in 2022 for all approaches
 ```{r}
 #Put coefficient and confidence interval estimates in single dataframe
 method <- c("BA","BACI","ITS")
-estimate <- c(ba.model$coefficients[2],baci.model$coefficients[4],its.model$coefficients[3])
+Estimate <- c(ba.model$coefficients[2],baci.model$coefficients[4],its.model$coefficients[3])
 lwrCI <- c(confint.ba[2],confint.baci[4],confint.its[3]) #replace SCM CI
 uprCI <- c(confint.ba[4],confint.baci[8],confint.its[7])
-ci.data <- tibble(method,estimate,lwrCI,uprCI)
+ci.data <- tibble(method,Estimate,lwrCI,uprCI)
 ```
 
 CI Forest plot - Alternative methods
 ```{r}
 ci.plot <- ggplot(ci.data,
-       aes(x = estimate, y = method))+
+       aes(x = Estimate, y = method))+
     geom_errorbar(
         aes(xmin = lwrCI, xmax = uprCI), width = 0.25)+
     geom_point(size = 2.5)+
@@ -512,13 +555,13 @@ ci.plot
 CI plot - synthetic control method (2023 estimate)
 ```{r}
 method <- c("SC 2023", "SC 2022")
-estimate <- c(299 - 353.102, 238 - 300.959) 
+Estimate <- c(299 - 353.102, 238 - 300.959) 
 lwrCI <- c(299 - 383.925, 238 - 332.248)
 uprCI <- c(299 - 351.842, 238 - 300.118)
-scm.ci.data <- tibble(method,estimate,lwrCI,uprCI)
+scm.ci.data <- tibble(method,Estimate,lwrCI,uprCI)
 
 scm.ci.plot <- ggplot(scm.ci.data,
-       aes(x = estimate, y = method))+
+       aes(x = Estimate, y = method))+
     geom_errorbar(
         aes(xmin = lwrCI, xmax = uprCI), width = 0.25)+
     geom_point(size = 2.5)+
