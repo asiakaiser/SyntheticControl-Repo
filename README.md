@@ -1,5 +1,5 @@
 # SyntheticControl-Repo
-This is the repository is for my 2nd PhD dissertation chapter looking at how the synthetic control method can be used for causal inference using Participatory Science/iNaturalist data.
+This is the repository for the manuscript "Synthetic control methods enable stronger causal inference using participatory science data in cities"
 
 Download the following dataset to run the Synthetic Control Analysis.
 
