@@ -245,9 +245,11 @@ weightplot
 
 **Balance Table**: A table with values of the predictors/variables so that you can see how similar the synthetic control is to observed variables of the treated unit.
 ```{r}
-balancetab <- gbifcity_out %>% grab_balance_table() %>%
-    mutate(synthetic_percent_diff = ((Philadelphia - synthetic_Philadelphia)/Philadelphia)*100,
-           donor_percent_diff = ((Philadelphia - donor_sample)/Philadelphia)*100)
+balancetab <- gbifcity_out %>%
+  grab_balance_table() %>%
+  mutate(
+    synthetic_percent_diff = ((synthetic_Philadelphia - Philadelphia) / Philadelphia) * 100,
+    donor_percent_diff     = ((donor_sample - Philadelphia) / Philadelphia) * 100)
 ```
 
 ## Inference
@@ -560,6 +562,12 @@ summary(its.model.2)
 #confidence intervals for the its regression
 confint.its.2 <- confint(its.model.2)
 ```
+
+ITS for proportion of verifiable to research grade observations on platform
+```{r}
+
+```
+
 
 #Confidence Intervals
 

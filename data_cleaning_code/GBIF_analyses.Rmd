@@ -180,7 +180,7 @@ unique(gbif.all.taxa$City45km)
 
 *Group summaries*
 ```{r}
-# Number of unique observers (all bee families)
+# Number of unique observers (all taxa)
 gbif.obs.observers <- gbif.all.taxa %>%
   group_by(City45km, year) %>%
   summarise(unique_observers = n_distinct(recordedBy), .groups = "drop")
