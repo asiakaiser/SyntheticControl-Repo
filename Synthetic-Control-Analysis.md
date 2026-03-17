@@ -263,7 +263,6 @@ res.pi <- scpi(data = dat, sims = sims, e.method = e.method, e.order = e.order, 
     ## set to 0.
 
 ``` r
-?scpi
 summary(res.pi)
 ```
 
@@ -526,9 +525,11 @@ that you can see how similar the synthetic control is to observed
 variables of the treated unit.
 
 ``` r
-balancetab <- gbifcity_out %>% grab_balance_table() %>%
-    mutate(synthetic_percent_diff = ((Philadelphia - synthetic_Philadelphia)/Philadelphia)*100,
-           donor_percent_diff = ((Philadelphia - donor_sample)/Philadelphia)*100)
+balancetab <- gbifcity_out %>%
+  grab_balance_table() %>%
+  mutate(
+    synthetic_percent_diff = ((synthetic_Philadelphia - Philadelphia) / Philadelphia) * 100,
+    donor_percent_diff     = ((donor_sample - Philadelphia) / Philadelphia) * 100)
 ```
 
 ## Inference
@@ -1278,6 +1279,9 @@ summary(its.model.2)
 confint.its.2 <- confint(its.model.2)
 ```
 
+ITS for proportion of verifiable to research grade observations on
+platform
+
 \#Confidence Intervals
 
 Confidence interval plot for effect sizes in 2022 for all approaches
@@ -1307,7 +1311,7 @@ ci.plot <- ggplot(ci.data,
 ci.plot
 ```
 
-![](Synthetic-Control-Analysis_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
+![](Synthetic-Control-Analysis_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
 
 CI plot - synthetic control method (2023 estimate)
 
@@ -1331,7 +1335,7 @@ scm.ci.plot <- ggplot(scm.ci.data,
 scm.ci.plot
 ```
 
-![](Synthetic-Control-Analysis_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
+![](Synthetic-Control-Analysis_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
 
 # Save Figures
 
@@ -1383,7 +1387,7 @@ ggsave("figures/MPSE ratio plot.png", plot = mpseratio)
     ## Saving 7 x 5 in image
 
 ``` r
-ggsave("figures/Method comparison plot.png", plot = trends.figure, height = 12, width = 11)
+ggsave("figures/Method comparison plot.pdf", plot = trends.figure, height = 12, width = 11)
 ```
 
 # Citations
@@ -1420,14 +1424,14 @@ devtools::session_info()
     ## ─ Session info ───────────────────────────────────────────────────────────────
     ##  setting  value
     ##  version  R version 4.4.3 (2025-02-28)
-    ##  os       macOS Sequoia 15.7.2
+    ##  os       macOS 26.3.1
     ##  system   aarch64, darwin20
     ##  ui       X11
     ##  language (EN)
     ##  collate  en_US.UTF-8
     ##  ctype    en_US.UTF-8
     ##  tz       America/Denver
-    ##  date     2025-12-18
+    ##  date     2026-03-17
     ##  pandoc   3.2 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/aarch64/ (via rmarkdown)
     ##  quarto   1.5.57 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/quarto
     ## 

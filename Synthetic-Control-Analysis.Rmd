@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Load Packages
-```{r}
+```{r, message=FALSE}
 library(tidyverse)
 library(tidysynth)
 library(nlme)
@@ -623,12 +623,12 @@ scm.ci.plot
 trends.figure <- ggarrange(its.plot,baci.plot,ba.plot,ci.plot,scpi.plot,scm.ci.plot,
                     labels = c("A","B","C","D","E","F"), nrow = 3, ncol = 2)
 ggsave("figures/BACIplot_Cleveland.png", plot = baci.plot.2)
-ggsave("figures/Difference plot.png", plot = diffplot)
+ggsave("figures/Difference plot.pdf", plot = diffplot)
 ggsave("figures/Weight plot.png", plot = weightplot, height = 12, width = 13)
 ggsave("figures/Scpi Weights plot.png", plot = scpi.weights.plot)
-ggsave("figures/Placebos plot.png", plot = placebos)
+ggsave("figures/Placebos plot.pdf", plot = placebos)
 ggsave("figures/MPSE ratio plot.png", plot = mpseratio)
-ggsave("figures/Method comparison plot.png", plot = trends.figure, height = 12, width = 11)
+ggsave("figures/Method comparison plot.pdf", plot = trends.figure, height = 12, width = 11)
 ```
 
 # Citations
