@@ -5,8 +5,10 @@ Download the following dataset to run the Synthetic Control Analysis.
 
 **[City data](https://drive.google.com/file/d/1Oefw1a1LO19GzwxjeHMqWoJDMxYh_2xh/view?usp=sharing)** 
 
+We use publicly available data from the US Census Bureau (https://www.census.gov/data.html) , WorldClim (https://worldclim.org/), The National Landcover Database (https://doi.org/10.5066/P94UXNTS), and the Global Biodiversity Information Facility (https://doi.org/10.15468/dl.jvuxa3).
 
-Other datasets used to collect landscape level predictors and biodiversity outcomes available here:
+
+Datasets used to collect landscape-level predictors and biodiversity outcomes available here:
 
 **Land Rasters**
 
@@ -14,5 +16,8 @@ Other datasets used to collect landscape level predictors and biodiversity outco
   
   - [NLCD 2019 Tree canopy cover raster](https://drive.google.com/drive/folders/1afXTmMfXWmoEw9oO_hpvm6U3TUeyExSK?usp=sharing)
   
-**[GBIF data](https://doi.org/10.15468/dl.jvuxa3)**
+**[GBIF Hymenoptera data](https://doi.org/10.15468/dl.jvuxa3)**
+**[GBIF all taxa data](https://doi.org/10.15468/dl.eajcyz )**
+
+
   
