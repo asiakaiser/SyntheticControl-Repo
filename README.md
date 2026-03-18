@@ -17,6 +17,7 @@ Datasets used to collect landscape-level predictors and biodiversity outcomes av
   - [NLCD 2019 Tree canopy cover raster](https://drive.google.com/drive/folders/1afXTmMfXWmoEw9oO_hpvm6U3TUeyExSK?usp=sharing)
   
 **[GBIF Hymenoptera data](https://doi.org/10.15468/dl.jvuxa3)**
+
 **[GBIF all taxa data](https://doi.org/10.15468/dl.eajcyz )**
 
 
