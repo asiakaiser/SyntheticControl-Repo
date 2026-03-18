@@ -1,9 +1,9 @@
 # SyntheticControl-Repo
 This is the repository for the manuscript "Synthetic control methods enable stronger causal inference using participatory science data in cities"
 
-Download the following dataset to run the Synthetic Control Analysis.
+Download the following dataset from OSF to run the Synthetic Control Analysis.
 
-**[City data](https://drive.google.com/file/d/1Oefw1a1LO19GzwxjeHMqWoJDMxYh_2xh/view?usp=sharing)** 
+**[City data](https://osf.io/fv7cz)** 
 
 We use publicly available data from the US Census Bureau (https://www.census.gov/data.html) , WorldClim (https://worldclim.org/), The National Landcover Database (https://doi.org/10.5066/P94UXNTS), and the Global Biodiversity Information Facility (https://doi.org/10.15468/dl.jvuxa3).
 
