@@ -1,5 +1,7 @@
 # SyntheticControl-Repo
-This is the repository for the manuscript "Synthetic control methods enable stronger causal inference using participatory science data in cities"
+This is the repository for the manuscript:
+
+**Kaiser A**, Resasco J,  Dee LE. (In Press). Synthetic control methods enable stronger causal inference using participatory science data in cities. *Nature Ecology and Evolution*.https://doi.org/10.1038/s41559-026-03084-4
 
 Download the following dataset from OSF to run the Synthetic Control Analysis.
 
